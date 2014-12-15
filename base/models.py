@@ -2,6 +2,7 @@ from config import db, app
 from datetime import datetime
 from slugify import slugify
 import json
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
 ROLE_USER = 0
 ROLE_ADMIN = 1
@@ -68,6 +69,9 @@ class UserItem(db.Model):
         return True
     def get_id(self):
         return self.id
+    def generate_auth_token(self, expiration = 600):
+        s = Serializer(app.config['SECRET_KEY'], expires_in = expiration)
+        return s.dumps({'id':self.id}).decode('utf-8')
     # 1 = admin, 2 = moderator
 
 class PageItem(db.Model):

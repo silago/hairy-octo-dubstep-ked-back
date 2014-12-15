@@ -14,6 +14,9 @@ def unquote_twice(st):
 
 class User(Resource):
     def get(self):
+        print("$")
+        print(request.cookies)
+        print("$")
         if 'user' in g and g.user.is_authenticated():
             return g.user
         else:
@@ -31,8 +34,9 @@ class User(Resource):
         user = UserItem.query.filter(UserItem.username==username,UserItem.password==password).first()
         if user:
             g.user = user
+            token  = g.user.generate_auth_token()
             print("we are loggined")
-            return {'username':user.username,'role_id':user.role_id}
+            return {'username':user.username,'role_id':user.role_id,'token':token}
         else: return 0
 
 class Page(Resource):
