@@ -1,6 +1,6 @@
 from config import db, app
 from flask.ext.restful import Resource, Api
-from base.models import BlockItem
+from base.models import BlockItem, UserItem
 from flask import request
 from base import views
 from flask.ext.login import LoginManager
@@ -13,6 +13,11 @@ api.add_resource(views.Block,'/api/block/<string:alias>')
 api.add_resource(views.Page,'/api/page/<string:url>')
 api.add_resource(views.User,'/api/user')
 
+
+
+@login_manager.user_loader
+def load_user(userid):
+    return UserItem.query.get(userid)
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,5 +1,5 @@
 from flask.ext.restful import Resource, Api
-from flask import request, g
+from flask import request, g, session
 from base.models import *
 import json
 from config import db
@@ -7,20 +7,20 @@ from urllib.parse import unquote
 import base64
 import hashlib
 from flask.ext.login import login_user, logout_user, current_user, login_required
+from flask.ext.cors import CORS, cross_origin
 
 
 def unquote_twice(st):
     return unquote(unquote(st))
 
+
 class User(Resource):
     def get(self):
-        print("$")
-        print(request.cookies)
-        print("$")
-        if 'user' in g and g.user.is_authenticated():
-            return g.user
+        if current_user.is_authenticated():
+            return current_user.__to_dict__()
         else:
             return dict()
+
     def post(self):
         data = request.data.decode('utf-8')
         try:
@@ -33,11 +33,9 @@ class User(Resource):
         password = hashlib.md5(password).hexdigest()
         user = UserItem.query.filter(UserItem.username==username,UserItem.password==password).first()
         if user:
-            g.user = user
-            token  = g.user.generate_auth_token()
-            print("we are loggined")
-            return {'username':user.username,'role_id':user.role_id,'token':token}
-        else: return 0
+            is_logged = login_user(user)
+            return {'username':user.username,'role_id':user.role_id}
+        else: return {}
 
 class Page(Resource):
     def get(self,url):

@@ -65,6 +65,14 @@ class UserItem(db.Model):
     password = db.Column(db.String)
     role_id  = db.Column(db.Integer)
     session_key = db.Column(db.String, unique=True)
+    def __to_dict__(self):
+      return {'username':self.username,'role_id':self.role_id}
+    def is_anonymous(self):
+      if self.id: return False
+      else: return True
+    def is_authenticated(self):
+      return True
+
     def is_active(self):
         return True
     def get_id(self):
