@@ -21,6 +21,11 @@ class User(Resource):
         else:
             return dict()
 
+    @login_required
+    def delete(self):
+        logout_user()
+        return dict()
+
     def post(self):
         data = request.data.decode('utf-8')
         try:
