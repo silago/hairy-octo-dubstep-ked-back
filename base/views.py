@@ -13,8 +13,41 @@ from flask.ext.cors import CORS, cross_origin
 def unquote_twice(st):
     return unquote(unquote(st))
 
-
 class User(Resource):
+    def get(self):
+        users = UserItem.query.all()
+        return {'data':[u.__to_dict__() for u in users]} or dict()
+
+    def post(self):
+        data = request.data.decode('utf-8')
+        try:
+            data = json.loads(data)
+            uid = data['id']
+        except:
+            print("cannot load json data")
+        item = UserItem.query.get(uid)
+        item.role_id = data['role_id']
+        item.username = data['username']
+        if ('password' in data and data['password']): item.password = hashlib.md5(data['password'].encode('utf-8')).hexdigest()
+        db.session.add(item)
+        db.session.commit()
+        return self.get()
+
+
+    def put(self):
+        data = request.data.decode('utf-8')
+        try:
+            data = json.loads(data)
+        except:
+            print("cannot load json data")
+
+        password = hashlib.md5(data['password'].encode('utf-8')).hexdigest()
+        item = UserItem(data['username'],password,data['role_id'])
+        db.session.add(item)
+        db.session.commit()
+        return self.get()
+
+class Auth(Resource):
     def get(self):
         if current_user.is_authenticated():
             return current_user.__to_dict__()

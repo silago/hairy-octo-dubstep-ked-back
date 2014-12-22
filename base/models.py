@@ -30,12 +30,31 @@ ROLE_ADMIN = 1
 #        return '<MenuItem %r>' % self.title
 
 
+class CategoryItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    alias = db.Column(db.String(255), unique=True)
+    parent_id = db.Column(db.ForeignKey('category_item.id'),nullable=True)
+    name  = db.Column(db.String(255))
+
+class ArtikulItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    alias = db.Column(db.String(255))
+    data  = db.Column(db.String())
+    category_id = db.Column(db.ForeignKey('category_item.id'))
+
+
+
+
 
 blocks = db.Table('page_blocks',
     db.Column('page_id',  db.Integer, db.ForeignKey('page_item.id')),
     db.Column('block_id', db.Integer, db.ForeignKey('block_item.id')),
     db.Column('place',    db.String())
 )
+
+
+
+
 
 class BlockItem(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -65,8 +84,13 @@ class UserItem(db.Model):
     password = db.Column(db.String)
     role_id  = db.Column(db.Integer)
     session_key = db.Column(db.String, unique=True)
+    def __init__(self,username,password,role_id):
+        self.username = username
+        self.password = password
+        self.role_id = role_id
+
     def __to_dict__(self):
-      return {'username':self.username,'role_id':self.role_id}
+      return {'id':self.id, 'username':self.username,'role_id':self.role_id}
     def is_anonymous(self):
       if self.id: return False
       else: return True
