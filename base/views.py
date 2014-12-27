@@ -10,14 +10,27 @@ from flask.ext.login import login_user, logout_user, current_user, login_require
 from flask.ext.cors import CORS, cross_origin
 
 
+
+class accessManager():
+    def __init__(self):
+        pass
+    def canCurrentUserAccessTo():
+        role_id = current_user.role_id()
+        return True
+        pass
+        
+
+
 def unquote_twice(st):
     return unquote(unquote(st))
 
 class User(Resource):
+    @login_required
     def get(self):
         users = UserItem.query.all()
         return {'data':[u.__to_dict__() for u in users]} or dict()
 
+    @login_required
     def post(self):
         data = request.data.decode('utf-8')
         try:
@@ -33,7 +46,8 @@ class User(Resource):
         db.session.commit()
         return self.get()
 
-
+    
+    @login_required
     def put(self):
         data = request.data.decode('utf-8')
         try:
@@ -90,6 +104,7 @@ class Page(Resource):
         return result
         #return result
 
+    @login_required
     def put(self,url):
         url = unquote_twice(url)
         data = request.data.decode('utf-8')
@@ -103,6 +118,7 @@ class Page(Resource):
         return self.get(url)
 
 
+    @login_required
     def post(self,url):
         url = unquote_twice(url)
         data = request.data.decode('utf-8')
@@ -121,6 +137,7 @@ class Page(Resource):
         db.session.commit()
         return self.get(url)
 
+    @login_required
     def __create_blocks(self,data,parent_id = None):
         result = []
         i = 0
