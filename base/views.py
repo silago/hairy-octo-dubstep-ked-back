@@ -10,27 +10,37 @@ from flask.ext.login import login_user, logout_user, current_user, login_require
 from flask.ext.cors import CORS, cross_origin
 
 
-
-class accessManager():
-    def __init__(self):
-        pass
-    def canCurrentUserAccessTo():
-        role_id = current_user.role_id()
-        return True
-        pass
+def test_decor(fn):
+    def wrapped(obj):
+        role_id = current_user.role_id or 0
+        obj_name = obj.__class__.__name__
+        fun_name = fn.__name__
         
-
+        rules = {}
+        rules[0] = {}
+        rules[1] = {}
+        rules[1]['User'] = ['post','get','put','delete']
+        rules[1]['Page'] = ['post','get','put','delete']
+        if (obj_name in rules[role_id] and fun_name in rules[role_id][obj_name]):
+            return fn(obj)
+        else:
+            return {'error':'you have no power here'}
+        return fn()
+    return wrapped
 
 def unquote_twice(st):
     return unquote(unquote(st))
 
 class User(Resource):
     @login_required
+    def accessable(self):
+        return {'error':'you have no access here'}
+
     def get(self):
         users = UserItem.query.all()
         return {'data':[u.__to_dict__() for u in users]} or dict()
 
-    @login_required
+    @test_decor
     def post(self):
         data = request.data.decode('utf-8')
         try:
@@ -47,7 +57,7 @@ class User(Resource):
         return self.get()
 
     
-    @login_required
+    @test_decor
     def put(self):
         data = request.data.decode('utf-8')
         try:
@@ -104,7 +114,7 @@ class Page(Resource):
         return result
         #return result
 
-    @login_required
+    @test_decor
     def put(self,url):
         url = unquote_twice(url)
         data = request.data.decode('utf-8')
@@ -118,7 +128,7 @@ class Page(Resource):
         return self.get(url)
 
 
-    @login_required
+    @test_decor
     def post(self,url):
         url = unquote_twice(url)
         data = request.data.decode('utf-8')
