@@ -11,25 +11,34 @@ from flask.ext.cors import CORS, cross_origin
 
 
 def test_decor(fn):
-    def wrapped(obj):
+    def wrapped(obj,*args,  **kwargs):
         role_id = current_user.role_id or 0
         obj_name = obj.__class__.__name__
         fun_name = fn.__name__
-        
+
         rules = {}
         rules[0] = {}
         rules[1] = {}
         rules[1]['User'] = ['post','get','put','delete']
         rules[1]['Page'] = ['post','get','put','delete']
         if (obj_name in rules[role_id] and fun_name in rules[role_id][obj_name]):
+            return fn(obj,**kwargs)
             return fn(obj)
         else:
             return {'error':'you have no power here'}
-        return fn()
+        return fn(obj,**kwargs)
+
     return wrapped
 
 def unquote_twice(st):
     return unquote(unquote(st))
+
+class Files(Resource):
+    def get(self):
+        return {}
+    @login_required
+    def post(self):
+        return {'url':'http://locahost:9000/static/1.jpg'}
 
 class User(Resource):
     @login_required
@@ -56,7 +65,7 @@ class User(Resource):
         db.session.commit()
         return self.get()
 
-    
+
     @test_decor
     def put(self):
         data = request.data.decode('utf-8')

@@ -13,6 +13,7 @@ api.add_resource(views.Block,'/api/block/<string:alias>')
 api.add_resource(views.Page,'/api/page/<string:url>')
 api.add_resource(views.Auth,'/api/auth')
 api.add_resource(views.User,'/api/user')
+api.add_resource(views.Files,'/api/files')
 
 
 
