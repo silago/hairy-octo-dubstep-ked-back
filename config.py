@@ -11,6 +11,5 @@ app.secret_key = 'sooooseeecreet'
 CORS(app, resources={r'/api/*':{"origins":"http://localhost:9000","supports_credentials":True}})
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 db = SQLAlchemy(app)
-
-
-
+STATIC_FILES_DIR = '/home/silago/work/keddo/application/frontend/app/static'
+STATIC_FILES_URL = 'http://localhost:9000/static/'

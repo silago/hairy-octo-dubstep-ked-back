@@ -1,26 +1,33 @@
+import sys, os
 from flask.ext.restful import Resource, Api
 from flask import request, g, session
 from base.models import *
 import json
-from config import db
+from config import db, STATIC_FILES_DIR, STATIC_FILES_URL
 from urllib.parse import unquote
 import base64
 import hashlib
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from flask.ext.cors import CORS, cross_origin
+from werkzeug import secure_filename
 
 
-def test_decor(fn):
+
+def check_access(fn):
     def wrapped(obj,*args,  **kwargs):
         role_id = current_user.role_id or 0
+
+        if (role_id==2): return fn(obj,**kwargs)
         obj_name = obj.__class__.__name__
         fun_name = fn.__name__
 
         rules = {}
-        rules[0] = {}
-        rules[1] = {}
-        rules[1]['User'] = ['post','get','put','delete']
-        rules[1]['Page'] = ['post','get','put','delete']
+        rules[role_id] = Rights.get(Rights,role_id)
+        print(rules)
+        #rules[0] = {}
+        #rules[1] = {}
+        #rules[1]['User'] = ['post','get','put','delete']
+        #rules[1]['Page'] = ['post','get','put','delete']
         if (obj_name in rules[role_id] and fun_name in rules[role_id][obj_name]):
             return fn(obj,**kwargs)
             return fn(obj)
@@ -33,12 +40,93 @@ def test_decor(fn):
 def unquote_twice(st):
     return unquote(unquote(st))
 
+
+class City(Resource):
+    def get(self):
+        items = CityItem.query.all()
+        return {'data':[i.__to_dict__() for i in items]} or dict()
+
+    def post(self):
+        data = json.loads(request.data.decode('utf-8'))
+        CityItem.query.delete()
+        for obj in data["data"]:
+            db.session.add(CityItem(obj["name"],obj["position"]))
+        db.session.commit()
+        return self.get()
+
+
+class Map(Resource):
+    def get(self):
+        items = MapItem.query.all()
+        return {'data':[i.__to_dict__() for i in items]} or dict()
+
+    def post(self):
+        data = json.loads(request.data.decode('utf-8'))
+        MapItem.query.delete()
+        for obj in data["data"]:
+            db.session.add(MapItem(obj["name"],obj["position"]))
+        db.session.commit()
+        return self.get()
+
+
+    def put(self):
+        data = request.data.decode('utf-8')
+        print(data)
+        #try:
+        #    data = json.loads(data)
+        #except:
+        #    print("cannot load json data")
+        #password = hashlib.md5(data['password'].encode('utf-8')).hexdigest()
+        #item = UserItem(data['username'],password,data['role_id'])
+        #db.session.add(item)
+        #db.session.commit()
+        #return self.get()
+        return {}
+
 class Files(Resource):
     def get(self):
-        return {}
-    @login_required
+        return {'data':[STATIC_FILES_URL+i for i in os.listdir(STATIC_FILES_DIR)]}
+
+    #@login_required
     def post(self):
-        return {'url':'http://locahost:9000/static/1.jpg'}
+        #print(request.files)
+        #print("files.post")
+        file = request.files["Files"]
+        print("get file")
+        if file:
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(STATIC_FILES_DIR,filename))
+        return self.get()
+        return [{'url':'http://localhost:9000/static/1.jpg'}]
+
+
+
+class Rights(Resource):
+    def get(self,group_id):
+        # получить текущие разрещения групп
+        group = GroupItem.query.get(group_id)
+        views = ViewItem.query.all()
+        result = {}
+        for _v in views: result[_v.name] = []
+        for _g in group.rights:
+            result[_g.name]+=[_g.method]
+        return result
+        pass
+
+    def post(self,group_id):
+        data = request.data.decode('utf-8')
+        data = json.loads(data)
+        data = data['data']
+        group = GroupItem.query.get(group_id)
+        a = [v for k,v in data.items()]
+        _r = []
+        for k,v in data.items():
+            _r = _r+ [ViewItem.query.filter(ViewItem.name==k,ViewItem.method==m).first() or ViewItem(k,m) for m in v]
+        group.rights = _r
+        db.session.add(group)
+        db.session.commit()
+        return self.get(group_id)
+
 
 class User(Resource):
     @login_required
@@ -49,7 +137,7 @@ class User(Resource):
         users = UserItem.query.all()
         return {'data':[u.__to_dict__() for u in users]} or dict()
 
-    @test_decor
+    @check_access
     def post(self):
         data = request.data.decode('utf-8')
         try:
@@ -66,7 +154,7 @@ class User(Resource):
         return self.get()
 
 
-    @test_decor
+    @check_access
     def put(self):
         data = request.data.decode('utf-8')
         try:
@@ -87,7 +175,6 @@ class Auth(Resource):
         else:
             return dict()
 
-    @login_required
     def delete(self):
         logout_user()
         return dict()
@@ -108,6 +195,26 @@ class Auth(Resource):
             return {'username':user.username,'role_id':user.role_id}
         else: return {}
 
+class Search(Resource):
+    def post(self):
+        data = request.data.decode('utf-8')
+        try:
+            data = json.loads(data)
+        except:
+            print("cannot load json data")
+        q = '%'+data['data']+'%'
+        q = q.encode('raw_unicode_escape').decode('utf-8')
+
+        result = []
+        search_result = BlockItem.query.filter(BlockItem.data.like(q)).all()
+
+        for  r in search_result :
+            _p = r.__get_page__()
+            if (_p): result+= [_p.__to_dict__()]
+            #print(r.__get_page__())
+        return {'data':result}
+
+
 class Page(Resource):
     def get(self,url):
         url = unquote_twice(url)
@@ -116,14 +223,11 @@ class Page(Resource):
 
         item = PageItem.query.filter(PageItem.url==url).first()
         if item:
-            result['id'] = item.id
-            result['meta'] = item.meta
-            result['url'] = item.url
-            result['subitems'] = [i.__to_dict__() for i in item.blocks]
+            result = item.__to_dict__()
         return result
         #return result
 
-    @test_decor
+    @check_access
     def put(self,url):
         url = unquote_twice(url)
         data = request.data.decode('utf-8')
@@ -137,7 +241,7 @@ class Page(Resource):
         return self.get(url)
 
 
-    @test_decor
+    @check_access
     def post(self,url):
         url = unquote_twice(url)
         data = request.data.decode('utf-8')
@@ -162,7 +266,7 @@ class Page(Resource):
         i = 0
         for block in data:
             i+=1
-            if block['type'] == 'deleted':
+            if (not block or block['type'] == 'deleted'):
                 continue
             if 'id' not in block:
                 new_block = BlockItem(parent_id,block['type'],json.dumps(block['data']))

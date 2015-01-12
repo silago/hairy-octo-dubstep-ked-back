@@ -30,59 +30,38 @@ ROLE_ADMIN = 1
 #        return '<MenuItem %r>' % self.title
 
 
-class CategoryItem(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    alias = db.Column(db.String(255), unique=True)
-    parent_id = db.Column(db.ForeignKey('category_item.id'),nullable=True)
-    name  = db.Column(db.String(255))
-
-class ArtikulItem(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    alias = db.Column(db.String(255))
-    data  = db.Column(db.String())
-    category_id = db.Column(db.ForeignKey('category_item.id'))
-
-
-
-
-
-blocks = db.Table('page_blocks',
-    db.Column('page_id',  db.Integer, db.ForeignKey('page_item.id')),
-    db.Column('block_id', db.Integer, db.ForeignKey('block_item.id')),
-    db.Column('place',    db.String())
+#0 - нет доступа, 1-чтение (read), 2->read/wrtie
+rights = db.Table('group_rights',
+    db.Column('group_id',  db.Integer, db.ForeignKey('group_item.id')),
+    db.Column('view_id', db.Integer, db.ForeignKey('view_item.id')),
 )
 
 
+#class RightsGroupsItem(db.Model):
+#    group_id = db.Column(db.ForeignKey('group_item.id')),
+#    view_name = db.Column(db.ForeignKey('view_item.name')),
+#    access_level = db.Column(db.Integer())
+
+class ViewItem(db.Model):
+    id = db.Column(db.Integer,primary_key=True)
+    name = db.Column(db.String(255))
+    method = db.Column(db.String(255))
+    def __init__(self,name,method):
+        self.name = name
+        self.method = method
 
 
-
-class BlockItem(db.Model):
-    id = db.Column(db.Integer, primary_key = True)
-    alias = db.Column(db.String(255))
-    parent_id = db.Column(db.Integer, db.ForeignKey('block_item.id'), nullable=True)
-    type = db.Column(db.String(255))
-    data = db.Column(db.String())
-    order = db.Column(db.Integer, nullable=True)
-    subitems = db.relationship('BlockItem',cascade="all,delete",remote_side=[parent_id])
-
-    def __get_children__(self):
-        return [sub.__to_dict__() for sub in self.subitems]
-    def __to_dict__(self):
-        return dict({'id':self.id, 'parent_id':self.parent_id,'type':self.type,'data':json.loads(self.data),'subitems':self.__get_children__(),'order':self.order})
-
-    def __init__(self, parent_id, type, data):
-        self.parent_id = parent_id
-        self.type = type
-        self.data = data
-
-    def __repr__(self):
-        return "<block %r>" % self.id
+class GroupItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255),unique=True)
+    rights= db.relationship('ViewItem',secondary=rights)
 
 class UserItem(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     username = db.Column(db.String, unique=True)
     password = db.Column(db.String)
-    role_id  = db.Column(db.Integer)
+    #role_id  = db.Column(db.Integer)
+    role_id = db.Column(db.ForeignKey('group_item.id'),nullable=True)
     session_key = db.Column(db.String, unique=True)
     def __init__(self,username,password,role_id):
         self.username = username
@@ -106,11 +85,98 @@ class UserItem(db.Model):
         return s.dumps({'id':self.id}).decode('utf-8')
     # 1 = admin, 2 = moderator
 
+
+class CategoryItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    alias = db.Column(db.String(255), unique=True)
+    parent_id = db.Column(db.ForeignKey('category_item.id'),nullable=True)
+    name  = db.Column(db.String(255))
+
+class ArtikulItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    alias = db.Column(db.String(255))
+    data  = db.Column(db.String())
+    category_id = db.Column(db.ForeignKey('category_item.id'))
+
+
+blocks = db.Table('page_blocks',
+    db.Column('page_id',  db.Integer, db.ForeignKey('page_item.id')),
+    db.Column('block_id', db.Integer, db.ForeignKey('block_item.id')),
+    db.Column('place',    db.String())
+)
+
+
+class CityItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String())
+    position   = db.Column(db.String())
+    def __init__(self,name,position):
+        self.name = name
+        self.position = json.dumps(position)
+    def __to_dict__(self):
+        return dict({'id':self.id,'name':self.name,'position':json.loads(self.position)})
+
+class MapItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String())
+    #position_x = db.Column(db.Float(), nullable=True)
+    #position_y = db.Column(db.Float(), nullable=True)
+    position   = db.Column(db.String())
+    def __init__(self,name,position):
+        self.name = name
+        self.position = json.dumps(position)
+    def __to_dict__(self):
+        return dict({'id':self.id,'name':self.name,'position':json.loads(self.position)})
+
+
+class BlockItem(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    alias = db.Column(db.String(255))
+    parent_id = db.Column(db.Integer, db.ForeignKey('block_item.id'), nullable=True)
+    type = db.Column(db.String(255))
+    data = db.Column(db.String())
+    order = db.Column(db.Integer, nullable=True)
+    subitems = db.relationship('BlockItem',cascade="all,delete",remote_side=[parent_id])
+
+    def __get_page__(self,item=False):
+        if not item: item = self
+        while item and not item.PageItem and item.parent_id:
+            item=BlockItem.query.get(item.parent_id)
+
+        if not item.PageItem:
+            item.subitems=[]
+            db.session.delete(item)
+            return False
+        return item.PageItem[0]
+        #return
+
+    def __get_children__(self):
+        return [sub.__to_dict__() for sub in self.subitems]
+    def __to_dict__(self):
+        return dict({'id':self.id, 'parent_id':self.parent_id,'type':self.type,'data':json.loads(self.data),'subitems':self.__get_children__(),'order':self.order})
+
+    def __init__(self, parent_id, type, data):
+        self.parent_id = parent_id
+        self.type = type
+        self.data = data
+
+    def __repr__(self):
+        return "<block %r>" % self.id
+
+
 class PageItem(db.Model):
     id   = db.Column(db.Integer, primary_key = True)
     url  = db.Column(db.String(), unique=True)
     meta = db.Column(db.String())
-    blocks = db.relationship('BlockItem',secondary=blocks)
+    blocks = db.relationship('BlockItem',secondary=blocks,backref=db.backref('PageItem'),order_by="BlockItem.order")
+
+    def __to_dict__(self):
+        result = {}
+        result['id'] =     self.id
+        result['meta'] =   self.meta
+        result['url'] =    self.url
+        result['subitems'] = [i.__to_dict__() for i in self.blocks]
+        return result
 
     def __init__(self,url,meta):
         self.url = url
