@@ -10,6 +10,8 @@ import hashlib
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from flask.ext.cors import CORS, cross_origin
 from werkzeug import secure_filename
+from time import time
+import csv
 
 
 
@@ -24,10 +26,6 @@ def check_access(fn):
         rules = {}
         rules[role_id] = Rights.get(Rights,role_id)
         print(rules)
-        #rules[0] = {}
-        #rules[1] = {}
-        #rules[1]['User'] = ['post','get','put','delete']
-        #rules[1]['Page'] = ['post','get','put','delete']
         if (obj_name in rules[role_id] and fun_name in rules[role_id][obj_name]):
             return fn(obj,**kwargs)
             return fn(obj)
@@ -40,6 +38,48 @@ def check_access(fn):
 def unquote_twice(st):
     return unquote(unquote(st))
 
+
+class Catalog(Resource):
+    def get(self):
+        #data = [i.__to_dict__() for i in CatalogItem.query.get()]
+        data = [ i.__to_dict__() for i in CatalogItem.query.all() ]
+        return {'data':data}
+        
+    def post(self):
+        file = False
+        try:
+            file = request.files["Files"]
+        except:
+            pass
+        if file:
+            current_date = datetime.now()
+            f = file.read().decode('utf-8').split("\n")
+
+            columns = [ i[0] for i in csv.reader(f[0],delimiter=',',quotechar='"') if len(i) == 1]
+            CatalogItem.query.delete()
+            del(f[0])
+            for row in csv.reader(f,delimiter=',',quotechar='"'):
+                data =  { columns[k]:v   for k,v in enumerate(row)  }
+                db.session.add(CatalogItem(current_date, data))
+            db.session.commit()
+            return self.get()
+            #        if (len(row)==1):
+            #            #fields[columns[i]] = 
+            #            try:
+            #                print(columns[i])
+            #            except:
+            #                print(">>")
+            #                print(row[0])
+            #                print(i)
+            #                print("<<")
+            #            i+=1
+            #return []
+                #db.session.add(CatalogItem(obj["name"],current_item,obj["position"]))
+            #filename = str(time())+secure_filename(file.filename)
+            #file.save(os.path.join(STATIC_FILES_DIR,filename))
+        
+
+        return self.get()
 
 class City(Resource):
     def get(self):
@@ -89,15 +129,11 @@ class Files(Resource):
 
     #@login_required
     def post(self):
-        #print(request.files)
-        #print("files.post")
         file = request.files["Files"]
-        print("get file")
         if file:
-            filename = secure_filename(file.filename)
+            filename = str(time())+secure_filename(file.filename)
             file.save(os.path.join(STATIC_FILES_DIR,filename))
         return self.get()
-        return [{'url':'http://localhost:9000/static/1.jpg'}]
 
 
 

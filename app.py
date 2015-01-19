@@ -18,6 +18,7 @@ api.add_resource(views.Map,'/api/map')
 api.add_resource(views.City,'/api/city')
 api.add_resource(views.Rights,'/api/rights/<int:group_id>')
 api.add_resource(views.Search,'/api/search')
+api.add_resource(views.Catalog,'/api/catalog')
 
 
 @login_manager.user_loader

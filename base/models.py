@@ -42,6 +42,58 @@ rights = db.Table('group_rights',
 #    view_name = db.Column(db.ForeignKey('view_item.name')),
 #    access_level = db.Column(db.Integer())
 
+
+#"base image","thumbnail","small image","SKU","Цвет","Материал верха","Подкладка","analpa_razmer","Стелька","Сегмент","Сезон","год","Марка","Тип","status (активность)"
+
+
+class CatalogItem(db.Model):
+    id = db.Column(db.Integer,primary_key=True)
+    base_image     =db.Column(db.String(255))
+    thumbnail      =db.Column(db.String(255))
+    small_image    =db.Column(db.String(255))
+    sku            =db.Column(db.String(255))
+    color          =db.Column(db.String(255))
+    material_top   =db.Column(db.String(255))
+    lining         =db.Column(db.String(255))
+    analpa_size    =db.Column(db.String(255))
+    insole         =db.Column(db.String(255))
+    segment        =db.Column(db.String(255))
+    season         =db.Column(db.String(255))
+    year           =db.Column(db.String(255))
+    mark           =db.Column(db.String(255))
+    item_type      =db.Column(db.String(255))
+    status         =db.Column(db.String(255))
+    created_time   =db.Column(db.DateTime()) 
+
+    def __init__(self,date,dic):
+        self.created_time = date #datetime.now()
+        for k,v in dic.items():
+            setattr(self,self.__get_csv_association(k),v )
+    
+    def __to_dict__(self):
+        return  {k:str(v) for k,v in  vars(self).items() if k[0]!='_'}
+            
+        #return { k:getattr(self,k) for k,v in vars(self).items()}
+
+    def __get_csv_association(self,key):
+        csv_keys = { "base image":"base_image",
+                "thumbnail":"thumbnail",
+                "small image":"small_image",
+                "SKU":"sku",
+                "Цвет":"color",
+                "Материал верха":"material_top",
+                "Подкладка":"lining",
+                "analpa_razmer":"analpa_size",
+                "Стелька":"insole",
+                "Сегмент":"segment",
+                "Сезон":"season",
+                "год":"year",
+                "Марка":"mark",
+                "Тип":"item_type",
+                "status":"status"
+                }
+        return csv_keys[key]
+
 class ViewItem(db.Model):
     id = db.Column(db.Integer,primary_key=True)
     name = db.Column(db.String(255))
