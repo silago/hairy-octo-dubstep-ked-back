@@ -46,6 +46,19 @@ rights = db.Table('group_rights',
 #"base image","thumbnail","small image","SKU","Цвет","Материал верха","Подкладка","analpa_razmer","Стелька","Сегмент","Сезон","год","Марка","Тип","status (активность)"
 
 
+class GroupCatalogItem(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    info = db.Column(db.String(255))
+    alias = db.Column(db.String(255))
+    def __get_children__(self):
+        return [i.__to_dict__() for i in CatalogItem.query.filter(CatalogItem.id==self.id)]
+
+    def __init__(self,info):
+        self.alias = ''    
+        self.info = info
+    def __to_dict__(self):
+        return {'id':self.id,'info':self.info,'alias':self.alias,'items':self.__get_children__()}
+
 class CatalogItem(db.Model):
     id = db.Column(db.Integer,primary_key=True)
     base_image     =db.Column(db.String(255))
@@ -64,6 +77,7 @@ class CatalogItem(db.Model):
     item_type      =db.Column(db.String(255))
     status         =db.Column(db.String(255))
     created_time   =db.Column(db.DateTime()) 
+    group_catalog_id = db.Column(db.ForeignKey('group_catalog_item.id'),nullable=True)
 
     def __init__(self,date,dic):
         self.created_time = date #datetime.now()
@@ -112,8 +126,8 @@ class UserItem(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     username = db.Column(db.String, unique=True)
     password = db.Column(db.String)
-    #role_id  = db.Column(db.Integer)
-    role_id = db.Column(db.ForeignKey('group_item.id'),nullable=True)
+    role_id  = db.Column(db.Integer)
+    #role_id = db.Column(db.ForeignKey('group_item.id'),nullable=True)
     session_key = db.Column(db.String, unique=True)
     def __init__(self,username,password,role_id):
         self.username = username

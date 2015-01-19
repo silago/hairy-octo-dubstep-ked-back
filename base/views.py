@@ -25,7 +25,6 @@ def check_access(fn):
 
         rules = {}
         rules[role_id] = Rights.get(Rights,role_id)
-        print(rules)
         if (obj_name in rules[role_id] and fun_name in rules[role_id][obj_name]):
             return fn(obj,**kwargs)
             return fn(obj)
@@ -37,6 +36,24 @@ def check_access(fn):
 
 def unquote_twice(st):
     return unquote(unquote(st))
+
+""" catalog groups """
+class Gcatalog(Resource):
+    def get(self):
+        data = [i.__to_dict__() for i in GroupCatalogItem.query.all()]
+        return {'data':data}
+
+    def put(self):
+        data = json.loads(request.data.decode('utf-8'))["data"]
+        #CityItem.query.delete()
+        group = GroupCatalogItem(data["info"])
+        db.session.add(group)
+        for obj in data["items"]:
+            item = CatalogItem.query.get(obj)
+            item.group_catalog_id = group.id
+        db.session.commit()
+        return self.get()
+        
 
 
 class Catalog(Resource):
