@@ -59,7 +59,7 @@ class Gcatalog(Resource):
 class Catalog(Resource):
     def get(self):
         #data = [i.__to_dict__() for i in CatalogItem.query.get()]
-        data = [ i.__to_dict__() for i in CatalogItem.query.all() ]
+        data = [ i.__to_dict__() for i in CatalogItem.query.filter(CatalogItem.group_catalog_id==None).all() ]
         return {'data':data}
         
     def post(self):

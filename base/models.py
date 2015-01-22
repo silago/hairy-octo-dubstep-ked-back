@@ -51,7 +51,7 @@ class GroupCatalogItem(db.Model):
     info = db.Column(db.String(255))
     alias = db.Column(db.String(255))
     def __get_children__(self):
-        return [i.__to_dict__() for i in CatalogItem.query.filter(CatalogItem.id==self.id)]
+        return [i.__to_dict__() for i in CatalogItem.query.filter(CatalogItem.group_catalog_id==self.id).all()]
 
     def __init__(self,info):
         self.alias = ''    
