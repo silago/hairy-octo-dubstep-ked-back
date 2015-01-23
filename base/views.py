@@ -37,11 +37,35 @@ def check_access(fn):
 def unquote_twice(st):
     return unquote(unquote(st))
 
+
+
+class _Catalog(Resource):
+    def get(self):
+        pass
+
+class CatalogCollections(Resource):
+    def get(self):
+        return {'data':[i.__to_dict__() for i in CatalogItem.query.group_by(CatalogItem.season).all()]}
+        #db.session.query(Table.column, func.count(Table.column)).group_by(Table.column).all()
+        pass
+
+class CatalogSections(Resource):
+    def get(self):
+        pass
+
+class CatalogItems(Resource):
+    def get(self):
+        pass
+
+
+
 """ catalog groups """
 class Gcatalog(Resource):
     def get(self):
         data = [i.__to_dict__() for i in GroupCatalogItem.query.all()]
         return {'data':data}
+    def foo(self):
+        return {'data':'foo'}
 
     def put(self):
         data = json.loads(request.data.decode('utf-8'))["data"]
@@ -53,7 +77,8 @@ class Gcatalog(Resource):
             item.group_catalog_id = group.id
         db.session.commit()
         return self.get()
-        
+
+
 
 
 class Catalog(Resource):
@@ -61,7 +86,6 @@ class Catalog(Resource):
         #data = [i.__to_dict__() for i in CatalogItem.query.get()]
         data = [ i.__to_dict__() for i in CatalogItem.query.filter(CatalogItem.group_catalog_id==None).all() ]
         return {'data':data}
-        
     def post(self):
         file = False
         try:

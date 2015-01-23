@@ -18,8 +18,15 @@ api.add_resource(views.Map,'/api/map')
 api.add_resource(views.City,'/api/city')
 api.add_resource(views.Rights,'/api/rights/<int:group_id>')
 api.add_resource(views.Search,'/api/search')
-api.add_resource(views.Catalog,'/api/catalog')
+#api.add_resource(views.Catalog,'/api/catalog')
+api.add_resource(views.Gcatalog,'/api/gcatalog/foo/',endpoint="foo")
 api.add_resource(views.Gcatalog,'/api/gcatalog')
+
+
+#api.add_resource(views.Catalog,'/api/catalog/')
+api.add_resource(views.CatalogCollections,'/api/catalog/collections/')
+api.add_resource(views.CatalogSections,'/api/catalog/collections/<string:collection_alias>/')
+api.add_resource(views.CatalogItems,'/api/catalog/<string:collection_alias>/<string:section_alias>/')
 
 
 @login_manager.user_loader
