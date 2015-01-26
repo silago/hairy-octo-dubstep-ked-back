@@ -50,6 +50,7 @@ class GroupCatalogItem(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     info = db.Column(db.String(255))
     alias = db.Column(db.String(255))
+    items = db.relationship('CatalogItem',backref='group')
     def __get_children__(self):
         return [i.__to_dict__() for i in CatalogItem.query.filter(CatalogItem.group_catalog_id==self.id).all()]
 
@@ -78,6 +79,7 @@ class CatalogItem(db.Model):
     status         =db.Column(db.String(255))
     created_time   =db.Column(db.DateTime()) 
     group_catalog_id = db.Column(db.ForeignKey('group_catalog_item.id'),nullable=True)
+
 
     def __init__(self,date,dic):
         self.created_time = date #datetime.now()
@@ -202,7 +204,7 @@ class BlockItem(db.Model):
     type = db.Column(db.String(255))
     data = db.Column(db.String())
     order = db.Column(db.Integer, nullable=True)
-    subitems = db.relationship('BlockItem',cascade="all,delete",remote_side=[parent_id])
+    subitems = db.relationship('BlockItem',cascade="all,delete",remote_side=[parent_id],order_by="BlockItem.order")
 
     def __get_page__(self,item=False):
         if not item: item = self
