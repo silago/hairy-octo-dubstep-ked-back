@@ -37,6 +37,11 @@ rights = db.Table('group_rights',
 )
 
 
+similar = db.Table('groups_similar',
+    db.Column('group_id',  db.Integer, db.ForeignKey('group_catalog_item.id')),
+    db.Column('similar_group_id', db.Integer, db.ForeignKey('group_catalog_item.id')),
+)
+
 #class RightsGroupsItem(db.Model):
 #    group_id = db.Column(db.ForeignKey('group_item.id')),
 #    view_name = db.Column(db.ForeignKey('view_item.name')),
@@ -51,6 +56,10 @@ class GroupCatalogItem(db.Model):
     info = db.Column(db.String(255))
     alias = db.Column(db.String(255))
     items = db.relationship('CatalogItem',backref='group')
+    similar = db.relationship('GroupCatalogItem',secondary=similar,primaryjoin=id==similar.c.group_id, secondaryjoin=id==similar.c.similar_group_id)
+    def __get_similar(self):
+        return [i.items[0] for i in self.similar]
+
     def __get_children__(self):
         return [i.__to_dict__() for i in CatalogItem.query.filter(CatalogItem.group_catalog_id==self.id).all()]
 
@@ -58,7 +67,7 @@ class GroupCatalogItem(db.Model):
         self.alias = ''    
         self.info = info
     def __to_dict__(self):
-        return {'id':self.id,'info':self.info,'alias':self.alias,'items':self.__get_children__()}
+        return {'id':self.id,'info':self.info,'alias':self.alias,'items':self.__get_children__(),'similar':self.__get_similar()}
 
 class CatalogItem(db.Model):
     id = db.Column(db.Integer,primary_key=True)

@@ -23,11 +23,12 @@ api.add_resource(views.Gcatalog,'/api/gcatalog/foo/',endpoint="foo")
 api.add_resource(views.Gcatalog,'/api/gcatalog')
 
 
+# vesna / man / item
 api.add_resource(views.Catalog,'/api/catalog/')
-api.add_resource(views.CatalogSegments,'/api/catalog/collection/')
-api.add_resource(views.CatalogCollections,'/api/catalog/collection/<string:segment_alias>/')
-api.add_resource(views.CatalogGroups,'/api/catalog/collection/<string:segment_alias>/<string:collection_alias>/')
-api.add_resource(views.CatalogItems,'/api/catalog/collection/<string:segment_alias>/<string:collection_alias>/<string:group_id>/')
+api.add_resource(views.CatalogCollections,'/api/catalog/collection/')
+api.add_resource(views.CatalogSegments,'/api/catalog/collection/<string:collection_alias>')
+api.add_resource(views.CatalogGroups,'/api/catalog/collection/<string:collection_alias>//<string:segment_alias>')
+api.add_resource(views.CatalogItems,'/api/catalog/collection/<string:collection_alias>/<string:segment_alias>/<string:group_id>/')
 
 
 @login_manager.user_loader

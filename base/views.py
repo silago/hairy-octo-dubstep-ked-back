@@ -46,26 +46,26 @@ class _Catalog(Resource):
 
 #Мужская или женская или жетская
 class CatalogSegments(Resource):
-    def get(self):
-        return {'data':[i.__to_dict__() for i in CatalogItem.query.group_by(CatalogItem.segment).filter(CatalogItem.group_catalog_id!=None).all()]}
+    def get(self,collection_alias):
+        return {'data':[i.__to_dict__() for i in CatalogItem.query.group_by(CatalogItem.segment).filter(CatalogItem.season==collection_alias,CatalogItem.group_catalog_id!=None).all()]}
         pass
 #Зимал ли, лето, конец ли света
 class CatalogCollections(Resource):
-    def get(self,segment_alias):
+    def get(self):
         return {'data':[i.__to_dict__() for i in \
         CatalogItem.query.group_by(CatalogItem.season).\
-        filter(CatalogItem.segment==segment_alias,CatalogItem.group_catalog_id!=None).all()]}
+        filter(CatalogItem.group_catalog_id!=None).all()]}
         #db.session.query(Table.column, func.count(Table.column)).group_by(Table.column).all()
         pass
 
 class CatalogGroups(Resource):
-    def get(self,segment_alias,collection_alias):
+    def get(self,collection_alias,segment_alias):
         return {'data':[i.__to_dict__() for i in GroupCatalogItem.query.join(GroupCatalogItem.items).filter(CatalogItem.season==collection_alias,CatalogItem.segment==segment_alias).all()]}
         pass
 
 
 class CatalogItems(Resource):
-    def get(self,segment_alias,collection_alias,group_id):
+    def get(self,collection_alias,segment_alias,group_id):
         result = GroupCatalogItem.query.get(group_id).__to_dict__()
         dir = STATIC_FILES_DIR+'/catalog/keddo'
         url = STATIC_FILES_URL+'catalog/keddo/'
