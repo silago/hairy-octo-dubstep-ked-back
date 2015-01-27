@@ -49,6 +49,25 @@ class CatalogSegments(Resource):
     def get(self,collection_alias):
         return {'data':[i.__to_dict__() for i in CatalogItem.query.group_by(CatalogItem.segment).filter(CatalogItem.season==collection_alias,CatalogItem.group_catalog_id!=None).all()]}
         pass
+
+    """ delete collection e.g. all segments in this collection. fail """
+    def delete(self,collection_alias):
+        data = json.loads(request.data.decode('utf-8'))["data"]
+        CatalogItem.query.filter(CatalogItem.season==collection_alias).delete()
+        db.session.commit()
+        return {}
+
+    """ set collection as active """ 
+    def post(self,collection_alias):
+        data = json.loads(request.data.decode('utf-8'))
+        if (data['set']=='active'):
+            CatalogItem.query.filter(CatalogItem.season!=collection_alias).update({'coll_status':0})
+            CatalogItem.query.filter(CatalogItem.season==collection_alias).update({'coll_status':1})
+        db.session.commit()
+        return {}
+
+    
+
 #Зимал ли, лето, конец ли света
 class CatalogCollections(Resource):
     def get(self):
@@ -57,6 +76,8 @@ class CatalogCollections(Resource):
         filter(CatalogItem.group_catalog_id!=None).all()]}
         #db.session.query(Table.column, func.count(Table.column)).group_by(Table.column).all()
         pass
+    
+
 
 class CatalogGroups(Resource):
     def get(self,collection_alias,segment_alias):
@@ -82,16 +103,6 @@ class Gcatalog(Resource):
     def foo(self):
         return {'data':'foo'}
 
-    def put(self):
-        data = json.loads(request.data.decode('utf-8'))["data"]
-        #CityItem.query.delete()
-        group = GroupCatalogItem(data["info"])
-        db.session.add(group)
-        for obj in data["items"]:
-            item = CatalogItem.query.get(obj)
-            item.group_catalog_id = group.id
-        db.session.commit()
-        return self.get()
 
 
 

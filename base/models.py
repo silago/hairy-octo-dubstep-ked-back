@@ -88,6 +88,7 @@ class CatalogItem(db.Model):
     status         =db.Column(db.String(255))
     created_time   =db.Column(db.DateTime()) 
     group_catalog_id = db.Column(db.ForeignKey('group_catalog_item.id'),nullable=True)
+    coll_status    =db.Column(db.Integer,nullable=True,default=0)
 
 
     def __init__(self,date,dic):
