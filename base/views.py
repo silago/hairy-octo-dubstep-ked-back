@@ -105,6 +105,15 @@ class Gcatalog(Resource):
         # data = [i.__to_dict__() for i in GroupCatalogItem.query.all()]
         return {'data':[i.__to_dict__() for i in GroupCatalogItem.query.join(GroupCatalogItem.items).filter(CatalogItem.coll_status==1).all()]}
         return {'data':data}
+    def put(self):
+        data = json.loads(request.data.decode('utf-8'))['data']
+        group = GroupCatalogItem(data['info'])
+        group.items = [CatalogItem.query.get(i) for i in data['items']]
+        db.session.add(group)
+        db.session.commit
+        return self.get()
+        
+
     def foo(self):
         return {'data':'foo'}
 
