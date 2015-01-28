@@ -52,7 +52,6 @@ class CatalogSegments(Resource):
 
     """ delete collection e.g. all segments in this collection. fail """
     def delete(self,collection_alias):
-        data = json.loads(request.data.decode('utf-8'))["data"]
         CatalogItem.query.filter(CatalogItem.season==collection_alias).delete()
         db.session.commit()
         return {}
@@ -71,9 +70,14 @@ class CatalogSegments(Resource):
 #Зимал ли, лето, конец ли света
 class CatalogCollections(Resource):
     def get(self):
+        all = (request.args.get('all')) or False
+        if (not all):
+            filter = CatalogItem.group_catalog_id!=None
+        else: 
+            filter = True
         return {'data':[i.__to_dict__() for i in \
         CatalogItem.query.group_by(CatalogItem.season).\
-        filter(CatalogItem.group_catalog_id!=None).all()]}
+        filter(filter,CatalogItem.season!=None).all()]}
         #db.session.query(Table.column, func.count(Table.column)).group_by(Table.column).all()
         pass
     
@@ -98,7 +102,8 @@ class CatalogItems(Resource):
 """ catalog groups """
 class Gcatalog(Resource):
     def get(self):
-        data = [i.__to_dict__() for i in GroupCatalogItem.query.all()]
+        # data = [i.__to_dict__() for i in GroupCatalogItem.query.all()]
+        return {'data':[i.__to_dict__() for i in GroupCatalogItem.query.join(GroupCatalogItem.items).filter(CatalogItem.coll_status==1).all()]}
         return {'data':data}
     def foo(self):
         return {'data':'foo'}
@@ -110,7 +115,7 @@ class Gcatalog(Resource):
 class Catalog(Resource):
     def get(self):
         #data = [i.__to_dict__() for i in CatalogItem.query.get()]
-        data = [ i.__to_dict__() for i in CatalogItem.query.filter(CatalogItem.group_catalog_id==None).all() ]
+        data = [ i.__to_dict__() for i in CatalogItem.query.filter(CatalogItem.coll_status==1).all() ]
         return {'data':data}
     def post(self):
         file = False
@@ -130,22 +135,6 @@ class Catalog(Resource):
                 db.session.add(CatalogItem(current_date, data))
             db.session.commit()
             return self.get()
-            #        if (len(row)==1):
-            #            #fields[columns[i]] = 
-            #            try:
-            #                print(columns[i])
-            #            except:
-            #                print(">>")
-            #                print(row[0])
-            #                print(i)
-            #                print("<<")
-            #            i+=1
-            #return []
-                #db.session.add(CatalogItem(obj["name"],current_item,obj["position"]))
-            #filename = str(time())+secure_filename(file.filename)
-            #file.save(os.path.join(STATIC_FILES_DIR,filename))
-        
-
         return self.get()
 
 class City(Resource):
