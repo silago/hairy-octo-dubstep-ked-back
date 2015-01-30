@@ -58,7 +58,7 @@ class GroupCatalogItem(db.Model):
     items = db.relationship('CatalogItem',backref='group')
     similar = db.relationship('GroupCatalogItem',secondary=similar,primaryjoin=id==similar.c.group_id, secondaryjoin=id==similar.c.similar_group_id)
     def __get_similar(self):
-        return [i.items[0] for i in self.similar]
+        return [[s.__to_dict__() for s in i.items] for i in self.similar]
 
     def __get_children__(self):
         return [i.__to_dict__() for i in CatalogItem.query.filter(CatalogItem.group_catalog_id==self.id).all()]

@@ -46,31 +46,19 @@ class _Catalog(Resource):
 
 #Мужская или женская или жетская
 class CatalogSegments(Resource):
-    def get(self,collection_alias):
-        return {'data':[i.__to_dict__() for i in CatalogItem.query.group_by(CatalogItem.segment).filter(CatalogItem.season==collection_alias,CatalogItem.group_catalog_id!=None).all()]}
+    def get(self):
+        return {'data':[i.__to_dict__() for i in CatalogItem.query.group_by(CatalogItem.segment).filter(CatalogItem.coll_status==1,CatalogItem.group_catalog_id!=None).all()]}
         pass
 
-    """ delete collection e.g. all segments in this collection. fail """
-    def delete(self,collection_alias):
-        CatalogItem.query.filter(CatalogItem.season==collection_alias).delete()
-        db.session.commit()
-        return {}
 
-    """ set collection as active """ 
-    def post(self,collection_alias):
-        data = json.loads(request.data.decode('utf-8'))
-        if (data['set']=='active'):
-            CatalogItem.query.filter(CatalogItem.season!=collection_alias).update({'coll_status':0})
-            CatalogItem.query.filter(CatalogItem.season==collection_alias).update({'coll_status':1})
-        db.session.commit()
-        return {}
 
-    
-
+# '/catalog/collection' - for seasons 
+# '/catalog/ for collestions
 #Зимал ли, лето, конец ли света
 class CatalogCollections(Resource):
     def get(self):
-        all = (request.args.get('all')) or False
+        all = True
+        #all = (request.args.get('all')) or False
         if (not all):
             filter = CatalogItem.group_catalog_id!=None
         else: 
@@ -80,8 +68,43 @@ class CatalogCollections(Resource):
         filter(filter,CatalogItem.season!=None).all()]}
         #db.session.query(Table.column, func.count(Table.column)).group_by(Table.column).all()
         pass
-    
 
+    """ delete collection e.g. all segments in this collection. fail """
+    def delete(self):
+        collection = (request.args.get('collection')) or False
+        CatalogItem.query.filter(CatalogItem.season==collection).delete()
+        db.session.commit()
+        return {}
+
+    """ set collection as active """ 
+    def put(self):
+        data = json.loads(request.data.decode('utf-8'))
+        collection = (request.args.get('collection')) or False
+        if (data['set']=='active'):
+            CatalogItem.query.filter(CatalogItem.season!=collection).update({'coll_status':0})
+            CatalogItem.query.filter(CatalogItem.season==collection).update({'coll_status':1})
+        db.session.commit()
+        return {}
+
+    def post(self):
+        file = False
+        try:
+            file = request.files["Files"]
+        except:
+            pass
+        if file:
+            current_date = datetime.now()
+            f = file.read().decode('utf-8').split("\n")
+
+            columns = [ i[0] for i in csv.reader(f[0],delimiter=',',quotechar='"') if len(i) == 1]
+            CatalogItem.query.delete()
+            del(f[0])
+            for row in csv.reader(f,delimiter=',',quotechar='"'):
+                data =  { columns[k]:v   for k,v in enumerate(row)  }
+                db.session.add(CatalogItem(current_date, data))
+            db.session.commit()
+            return self.get()
+        return self.get()
 
 class CatalogGroups(Resource):
     def get(self,collection_alias,segment_alias):
@@ -102,15 +125,31 @@ class CatalogItems(Resource):
 """ catalog groups """
 class Gcatalog(Resource):
     def get(self):
+        collection = (request.args.get('collection')) or False
+        state = (request.args.get('state')) or False
+        
         # data = [i.__to_dict__() for i in GroupCatalogItem.query.all()]
-        return {'data':[i.__to_dict__() for i in GroupCatalogItem.query.join(GroupCatalogItem.items).filter(CatalogItem.coll_status==1).all()]}
+        if (state=='items'):
+            return {'data':[i.__to_dict__() for i in CatalogItem.query.filter(CatalogItem.season==collection).all()]}
+        else: 
+            return {'data':[i.__to_dict__() for i in GroupCatalogItem.query.join(GroupCatalogItem.items).filter(CatalogItem.season==collection).all()]}
+
         return {'data':data}
     def put(self):
         data = json.loads(request.data.decode('utf-8'))['data']
         group = GroupCatalogItem(data['info'])
         group.items = [CatalogItem.query.get(i) for i in data['items']]
         db.session.add(group)
-        db.session.commit
+        db.session.commit()
+        return self.get()
+
+    def post(self):
+        data = json.loads(request.data.decode('utf-8'))['data']
+        group = GroupCatalogItem.query.get(data['id'])
+        group.items = [CatalogItem.query.get(i['id']) for i in data['items']]
+        group.similar = [GroupCatalogItem.query.get(i['id']) for i in data['similar']]
+        db.session.add(group)
+        db.session.commit()
         return self.get()
         
 
