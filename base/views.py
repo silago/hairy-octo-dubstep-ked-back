@@ -12,6 +12,7 @@ from flask.ext.cors import CORS, cross_origin
 from werkzeug import secure_filename
 from time import time
 import csv
+from sqlalchemy.sql.expression import or_
 
 
 
@@ -60,12 +61,12 @@ class CatalogCollections(Resource):
         all = True
         #all = (request.args.get('all')) or False
         if (not all):
-            filter = CatalogItem.group_catalog_id!=None
+            filt = CatalogItem.group_catalog_id!=None
         else: 
-            filter = True
+            filt = True
         return {'data':[i.__to_dict__() for i in \
         CatalogItem.query.group_by(CatalogItem.season).\
-        filter(filter,CatalogItem.season!=None).all()]}
+        filter(filt,CatalogItem.season!=None).all()]}
         #db.session.query(Table.column, func.count(Table.column)).group_by(Table.column).all()
         pass
 
@@ -106,19 +107,26 @@ class CatalogCollections(Resource):
             return self.get()
         return self.get()
 
+
+class CatalogTypes(Resource):
+    def get(self,segment_alias):
+        return {'data':[i.__to_dict__() for i in CatalogItem.query.group_by(CatalogItem.item_type).filter(CatalogItem.coll_status==1,CatalogItem.group_catalog_id!=None,CatalogItem.segment==segment_alias).all()]}
+        pass
+
 class CatalogGroups(Resource):
-    def get(self,collection_alias,segment_alias):
-        return {'data':[i.__to_dict__() for i in GroupCatalogItem.query.join(GroupCatalogItem.items).filter(CatalogItem.season==collection_alias,CatalogItem.segment==segment_alias).all()]}
+    def get(self,segment_alias,type_alias):
+        filt = True if type_alias=='*' else CatalogItem.item_type==type_alias 
+        return {'data':[i.__to_dict__() for i in GroupCatalogItem.query.join(GroupCatalogItem.items).filter(filt,CatalogItem.coll_status==1,CatalogItem.segment==segment_alias).all()]}
         pass
 
 
 class CatalogItems(Resource):
-    def get(self,collection_alias,segment_alias,group_id):
+    def get(self,segment_alias,type_alias,group_id):
         result = GroupCatalogItem.query.get(group_id).__to_dict__()
         dir = STATIC_FILES_DIR+'/catalog/keddo'
         url = STATIC_FILES_URL+'catalog/keddo/'
         for i in result['items']:
-            i['files'] = [STATIC_FILES_URL+'catalog'+i['base_image'],]
+            i['files'] = [STATIC_FILES_URL+'catalog/'+i['base_image'],]
             i['files']+= [url+f for f in os.listdir(dir) if i['sku'].replace('/','-') in f ]
         return {'data':result}
 
@@ -130,11 +138,12 @@ class Gcatalog(Resource):
         
         # data = [i.__to_dict__() for i in GroupCatalogItem.query.all()]
         if (state=='items'):
-            return {'data':[i.__to_dict__() for i in CatalogItem.query.filter(CatalogItem.season==collection).all()]}
+            return {'data':[i.__to_dict__() for i in CatalogItem.query.filter(CatalogItem.season==collection,CatalogItem.group_catalog_id==None).all()]}
         else: 
             return {'data':[i.__to_dict__() for i in GroupCatalogItem.query.join(GroupCatalogItem.items).filter(CatalogItem.season==collection).all()]}
 
         return {'data':data}
+
     def put(self):
         data = json.loads(request.data.decode('utf-8'))['data']
         group = GroupCatalogItem(data['info'])
@@ -342,17 +351,23 @@ class Search(Resource):
             data = json.loads(data)
         except:
             print("cannot load json data")
-        q = '%'+data['data']+'%'
-        q = q.encode('raw_unicode_escape').decode('utf-8')
+        q = data['data']
+        q = "%"+q+"%"
+        #q = q.encode('raw_unicode_escape').decode('utf-8')
 
-        result = []
-        search_result = BlockItem.query.filter(BlockItem.data.like(q)).all()
+        p_result = []
+        c_result = []
+        page_search_result = BlockItem.query.filter(BlockItem.data.like(q)).all()
 
-        for  r in search_result :
+        for  r in page_search_result :
             _p = r.__get_page__()
-            if (_p): result+= [_p.__to_dict__()]
-            #print(r.__get_page__())
-        return {'data':result}
+            if (_p): p_result+= [_p.__to_dict__()]
+
+        catalog_search_result = GroupCatalogItem.query.join(GroupCatalogItem.items).\
+        filter(CatalogItem.item_type.like(q)).all()
+        for  r in catalog_search_result:
+            c_result+= [r.__to_dict__()]
+        return {'data':{'pages':p_result,'items':c_result}}
 
 
 class Page(Resource):
