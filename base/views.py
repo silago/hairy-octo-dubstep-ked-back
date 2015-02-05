@@ -217,7 +217,7 @@ class Map(Resource):
         data = json.loads(request.data.decode('utf-8'))
         MapItem.query.delete()
         for obj in data["data"]:
-            db.session.add(MapItem(obj["name"],obj["position"]))
+            db.session.add(MapItem(obj["name"],obj["position"],obj['city_id']))
         db.session.commit()
         return self.get()
 

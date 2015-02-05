@@ -197,12 +197,14 @@ class CityItem(db.Model):
 class MapItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String())
+    city_id = db.Column(db.ForeignKey('city_item.id'),nullable=True)
     #position_x = db.Column(db.Float(), nullable=True)
     #position_y = db.Column(db.Float(), nullable=True)
     position   = db.Column(db.String())
-    def __init__(self,name,position):
+    def __init__(self,name,position,city_id):
         self.name = name
         self.position = json.dumps(position)
+        self.city_id = city_id
     def __to_dict__(self):
         return dict({'id':self.id,'name':self.name,'position':json.loads(self.position)})
 
