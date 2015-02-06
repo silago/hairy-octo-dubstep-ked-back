@@ -48,7 +48,7 @@ class _Catalog(Resource):
 #Мужская или женская или жетская
 class CatalogSegments(Resource):
     def get(self):
-        return {'data':[i.__to_dict__() for i in CatalogItem.query.group_by(CatalogItem.segment).filter(CatalogItem.coll_status==1,CatalogItem.group_catalog_id!=None).all()]}
+        return {'data':[i.__to_dict__() for i in CatalogItem.query.group_by(CatalogItem.segment).filter(CatalogItem.coll_status==1,CatalogItem.group_catalog_id!=None).order_by(CatalogItem.segment.desc()).all()]}
         pass
 
 
@@ -115,6 +115,7 @@ class CatalogTypes(Resource):
 
 class CatalogGroups(Resource):
     def get(self,segment_alias,type_alias):
+        type_alias = type_alias.replace('---','/')
         filt = True if type_alias=='*' else CatalogItem.item_type==type_alias 
         return {'data':[i.__to_dict__() for i in GroupCatalogItem.query.join(GroupCatalogItem.items).filter(filt,CatalogItem.coll_status==1,CatalogItem.segment==segment_alias).all()]}
         pass

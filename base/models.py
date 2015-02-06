@@ -206,7 +206,7 @@ class MapItem(db.Model):
         self.position = json.dumps(position)
         self.city_id = city_id
     def __to_dict__(self):
-        return dict({'id':self.id,'name':self.name,'position':json.loads(self.position)})
+        return dict({'id':self.id,'name':self.name,'position':json.loads(self.position),'city_id':self.city_id})
 
 
 class BlockItem(db.Model):
