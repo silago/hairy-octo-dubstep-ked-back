@@ -72,8 +72,6 @@ class GroupCatalogItem(db.Model):
 class CatalogItem(db.Model):
     id = db.Column(db.Integer,primary_key=True)
     base_image     =db.Column(db.String(255))
-    thumbnail      =db.Column(db.String(255))
-    small_image    =db.Column(db.String(255))
     sku            =db.Column(db.String(255))
     color          =db.Column(db.String(255))
     material_top   =db.Column(db.String(255))
@@ -82,19 +80,22 @@ class CatalogItem(db.Model):
     insole         =db.Column(db.String(255))
     segment        =db.Column(db.String(255))
     season         =db.Column(db.String(255))
-    year           =db.Column(db.String(255))
     mark           =db.Column(db.String(255))
     item_type      =db.Column(db.String(255))
-    status         =db.Column(db.String(255))
     created_time   =db.Column(db.DateTime()) 
     group_catalog_id = db.Column(db.ForeignKey('group_catalog_item.id'),nullable=True)
     coll_status    =db.Column(db.Integer,nullable=True,default=0)
+    #image_1 =db.Column(db.String(255))
+    image_2 =db.Column(db.String(255))
+    image_3 =db.Column(db.String(255))
 
-
-    def __init__(self,date,dic):
+    def __init__(self,date,season,dic):
         self.created_time = date #datetime.now()
+        self.season       = season
         for k,v in dic.items():
-            setattr(self,self.__get_csv_association(k),v )
+            attr = self.__get_csv_association(k)
+            if (attr):
+                setattr(self,attr,v )
     
     def __to_dict__(self):
         return  {k:str(v) for k,v in  vars(self).items() if k[0]!='_'}
@@ -102,23 +103,31 @@ class CatalogItem(db.Model):
         #return { k:getattr(self,k) for k,v in vars(self).items()}
 
     def __get_csv_association(self,key):
-        csv_keys = { "base image":"base_image",
-                "thumbnail":"thumbnail",
-                "small image":"small_image",
+        csv_keys = {
+                "image_1":"base_image",
+                "image_2":"image_2",
+                "image_3":"image_3",
                 "SKU":"sku",
+                "Артикул (SKU)":"sku",
                 "Цвет":"color",
                 "Материал верха":"material_top",
+                "Материал подкладки":"lining",
                 "Подкладка":"lining",
                 "analpa_razmer":"analpa_size",
+                "Размер":"analpa_size",
                 "Стелька":"insole",
                 "Сегмент":"segment",
                 "Сезон":"season",
                 "год":"year",
                 "Марка":"mark",
                 "Тип":"item_type",
+                "Тип обуви":"item_type",
                 "status":"status"
                 }
-        return csv_keys[key]
+        if (key in csv_keys):
+            return csv_keys[key]
+        else:
+            return None
 
 class ViewItem(db.Model):
     id = db.Column(db.Integer,primary_key=True)

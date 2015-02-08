@@ -94,15 +94,16 @@ class CatalogCollections(Resource):
         except:
             pass
         if file:
+            season = (request.args.get('season')) or False
             current_date = datetime.now()
             f = file.read().decode('utf-8').split("\n")
 
             columns = [ i[0] for i in csv.reader(f[0],delimiter=',',quotechar='"') if len(i) == 1]
-            CatalogItem.query.delete()
+            #CatalogItem.query.delete()
             del(f[0])
             for row in csv.reader(f,delimiter=',',quotechar='"'):
                 data =  { columns[k]:v   for k,v in enumerate(row)  }
-                db.session.add(CatalogItem(current_date, data))
+                db.session.add(CatalogItem(current_date,season, data))
             db.session.commit()
             return self.get()
         return self.get()
@@ -239,7 +240,7 @@ class Map(Resource):
 
 class Files(Resource):
     def get(self):
-        return {'data':[STATIC_FILES_URL+i for i in os.listdir(STATIC_FILES_DIR)]}
+        return {'data':[STATIC_FILES_URL+i for i in os.listdir(STATIC_FILES_DIR) if os.path.splitext(i)[1] in ['.jpg','.jpeg','.gif','.png']]}
 
     #@login_required
     def post(self):
