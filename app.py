@@ -5,10 +5,19 @@ from flask import request
 from base import views
 from flask.ext.login import LoginManager
 
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 
 api  = Api(app)
+
+#@api.representation('text/csv')
+#def csv(data, code, headers=None):
+#    resp = api.make_response(data, code)
+#    resp.headers.extend(headers or {})
+#    return resp
+
+api.add_resource(views.Subscribe,'/api/subscribe')
 api.add_resource(views.Block,'/api/block/<string:alias>')
 api.add_resource(views.Page,'/api/page/<string:url>')
 api.add_resource(views.Auth,'/api/auth')
@@ -24,6 +33,7 @@ api.add_resource(views.Gcatalog,'/api/gcatalog')
 
 # vesna / man / item
 #api.add_resource(views.Catalog,'/api/catalog/')
+api.add_resource(views.Rating,'/api/rate/<string:id>/<string:rating>')
 api.add_resource(views.CatalogCollections,'/api/catalog')
 api.add_resource(views.CatalogSegments,'/api/catalog/collection/')
 api.add_resource(views.CatalogTypes,'/api/catalog/collection/<string:segment_alias>/')

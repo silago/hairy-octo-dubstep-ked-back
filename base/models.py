@@ -50,6 +50,23 @@ similar = db.Table('groups_similar',
 
 #"base image","thumbnail","small image","SKU","Цвет","Материал верха","Подкладка","analpa_razmer","Стелька","Сегмент","Сезон","год","Марка","Тип","status (активность)"
 
+class ItemRating(db.Model):
+    __tablename__="item_rating"
+    id = db.Column(db.ForeignKey("catalog_item.sku"),primary_key=True)
+    voters = db.Column(db.Integer)
+    rating = db.Column(db.Integer)
+    def update_rating(self,rating):
+        self.voters+=1
+        self.rating+=rating
+        return self.rating/float(self.voters)
+        #self.rating = (self.rating*self.voters
+    def get_rating(self):
+        return self.rating/float(self.voters)
+
+    def __init__(self,id,rating):
+        self.id = id
+        self.rating = 5
+        self.voters = 0;
 
 class GroupCatalogItem(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -88,6 +105,7 @@ class CatalogItem(db.Model):
     #image_1 =db.Column(db.String(255))
     image_2 =db.Column(db.String(255))
     image_3 =db.Column(db.String(255))
+    rating = db.relationship('ItemRating',primaryjoin=sku==ItemRating.id, uselist=False)
 
     def __init__(self,date,season,dic):
         self.created_time = date #datetime.now()
@@ -98,7 +116,9 @@ class CatalogItem(db.Model):
                 setattr(self,attr,v )
     
     def __to_dict__(self):
-        return  {k:str(v) for k,v in  vars(self).items() if k[0]!='_'}
+        result = {k:str(v) for k,v in  vars(self).items() if k[0]!='_'}
+        result['rating'] = self.rating.get_rating() if self.rating else 0
+        return result
             
         #return { k:getattr(self,k) for k,v in vars(self).items()}
 
@@ -270,6 +290,18 @@ class PageItem(db.Model):
     def __init__(self,url,meta):
         self.url = url
         self.meta =  meta
+
+
+class SubscribedUsers(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    email = db.Column(db.String())
+    birthday = db.Column(db.String())
+    city = db.Column(db.String())
+    gender = db.Column(db.String())
+    def __to_dict__(self):
+        return dict({'email':self.email,'birthday':self.birthday,'city':self.city,'gender':self.gender})
+    def __init__(self,email,birthday,city,gender):
+        self.email,self.birthday,self.city,self.gender = email,birthday,city,gender
     #block_id = db.Column(db.Integer, db.ForeignKey('block_item.id'),nullable=True)
 
 #class PageBlock(db.Model):

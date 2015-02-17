@@ -1,6 +1,6 @@
-import sys, os
+import sys, os, io
 from flask.ext.restful import Resource, Api
-from flask import request, g, session
+from flask import request, g, session, make_response
 from base.models import *
 import json
 from config import db, STATIC_FILES_DIR, STATIC_FILES_URL
@@ -445,6 +445,45 @@ class Page(Resource):
     def __append_blocks(self,items,page_id):
         pass
 
+
+class Subscribe(Resource):
+    def get(self):
+        fieldnames = ['email', 'birthday', 'city', 'gender']
+        result = io.StringIO()
+        writer = csv.DictWriter(result, fieldnames=fieldnames)
+        writer.writeheader()
+        for s in  (SubscribedUsers.query.all() or []):
+            writer.writerow(s.__to_dict__())
+        #writer.writerow({'first_name': 'Lovely', 'last_name': 'Spam'})
+        #writer.writerow({'first_name': 'Wonderful', 'last_name': 'Spam'})
+
+        response = make_response(result.getvalue())
+        response.headers['content-type'] = 'text/csv'
+        return response
+        pass
+    def put(self):
+        data = request.data.decode('utf-8')
+        try:
+            data = json.loads(data)
+        except:
+            print("cannot load json data")
+        data = data['data']
+        #password = hashlib.md5(data['password'].encode('utf-8')).hexdigest()
+        item = SubscribedUsers(data['email'],data['birthday'],data['city'],data['gender'])
+        db.session.add(item)
+        db.session.commit()
+        return []
+
+    def delete(self):
+        pass
+
+class Rating(Resource):
+    def put(self,id,rating):
+        id = unquote_twice(id)
+        rating = ItemRating.query.get(id) or ItemRating(id)
+        rating.update_rating(rating)
+        db.session.add(rating)
+        db.session.commit(rating)
 
 class Block(Resource):
     def get(self,alias):
