@@ -480,6 +480,8 @@ class Subscribe(Resource):
 class Rating(Resource):
     def put(self,id,rating):
         id = unquote_twice(id)
+        rating = int(rating)
+        rating = rating if rating<=5 else 5
         rating = ItemRating.query.get(id) or ItemRating(id)
         rating.update_rating(rating)
         db.session.add(rating)

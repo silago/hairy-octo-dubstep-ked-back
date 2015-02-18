@@ -117,7 +117,7 @@ class CatalogItem(db.Model):
     
     def __to_dict__(self):
         result = {k:str(v) for k,v in  vars(self).items() if k[0]!='_'}
-        result['rating'] = self.rating.get_rating() if self.rating else 0
+        result['rating'] = self.rating.get_rating() if self.rating else 5
         return result
             
         #return { k:getattr(self,k) for k,v in vars(self).items()}
