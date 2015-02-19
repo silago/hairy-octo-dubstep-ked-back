@@ -3,8 +3,11 @@ from flask.ext.restful import Resource, Api
 from flask import request, g, session, make_response
 from base.models import *
 import json
+#from urllib3 import PoolManager
 from config import db, STATIC_FILES_DIR, STATIC_FILES_URL
 from urllib.parse import unquote
+import requests
+from xml.etree import ElementTree
 import base64
 import hashlib
 from flask.ext.login import login_user, logout_user, current_user, login_required
@@ -45,10 +48,38 @@ class _Catalog(Resource):
         pass
 
 
+CATALOG_CACHE = {}
+
+class CatalogCacheContainer():
+    def foo(self):
+        pass
+
 #Мужская или женская или жетская
 class CatalogSegments(Resource):
     def get(self):
-        return {'data':[i.__to_dict__() for i in CatalogItem.query.group_by(CatalogItem.segment).filter(CatalogItem.coll_status==1,CatalogItem.group_catalog_id!=None).order_by(CatalogItem.segment.desc()).all()]}
+        global CATALOG_CACHE
+        """ here get catalog from keddoshop """
+        """ get all items with parent id 12 """
+        """ except brands """
+        """ need to implement data cache """
+        #http = PoolManager()
+        url = 'http://keddoshop.com/api/rest/categories/2/'
+        if 'CatalogSegments' not in CATALOG_CACHE:
+            response = requests.get(url)
+            data = json.loads(response.content.decode('utf-8')) 
+            """ adapter """
+            result_data = []
+            for i in data:
+                if (i['parent_id'] == 2):
+                    result_data+=[{'segment':i['name'],'category_id':i['category_id']}]
+            CATALOG_CACHE['CatalogSegments']=result_data
+        result_data = CATALOG_CACHE['CatalogSegments']
+        result = {'data':result_data}
+        #print(tree)
+        #r = http.request('GET', url)
+        #print(r.status, r.data)
+        #return {'data':[i.__to_dict__() for i in CatalogItem.query.group_by(CatalogItem.segment).filter(CatalogItem.coll_status==1,CatalogItem.group_catalog_id!=None).order_by(CatalogItem.segment.desc()).all()]}
+        return  result
         pass
 
 
@@ -111,8 +142,31 @@ class CatalogCollections(Resource):
 
 class CatalogTypes(Resource):
     def get(self,segment_alias):
-        return {'data':[i.__to_dict__() for i in CatalogItem.query.group_by(CatalogItem.item_type).filter(CatalogItem.coll_status==1,CatalogItem.group_catalog_id!=None,CatalogItem.segment==segment_alias).all()]}
-        pass
+        global CATALOG_CACHE
+        for i in CATALOG_CACHE['CatalogSegments']:
+            print('>>>>>>>')
+            print(i)
+            print('<<<<<<<')
+            if i['segment']==segment_alias:
+                print("!!!!!!!!")
+                url = 'http://keddoshop.com/api/rest/categories/'+i['category_id']+'/'
+                if 'CatalogTypes-'+segment_alias not in CATALOG_CACHE:
+                    response = requests.get(url)
+                    data = json.loads(response.content.decode('utf-8')) 
+                    result_data = []
+                    for j in data:
+                        print("if"+str(j['parent_id'])+"=="+str(i['category_id']))
+                        if (j['parent_id'] == i['category_id']):
+                            print("true")
+                            result_data+=[{'item_type':j['name'],'category_id':j['category_id']}]
+                        else:
+                            print("false")
+                    CATALOG_CACHE['CatalogTypes'+segment_alias]=result_data
+                result_data = CATALOG_CACHE['CatalogTypes'+segment_alias]
+                return {'data':result_data}
+        return []
+        #return {'data':[i.__to_dict__() for i in CatalogItem.query.group_by(CatalogItem.item_type).filter(CatalogItem.coll_status==1,CatalogItem.group_catalog_id!=None,CatalogItem.segment==segment_alias).all()]}
+        #pass
 
 class CatalogGroups(Resource):
     def get(self,segment_alias,type_alias):
