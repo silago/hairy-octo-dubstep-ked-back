@@ -52,7 +52,7 @@ similar = db.Table('groups_similar',
 
 class ItemRating(db.Model):
     __tablename__="item_rating"
-    id = db.Column(db.ForeignKey("catalog_item.sku"),primary_key=True)
+    id = db.Column(db.ForeignKey("side_catalog_item.sku"),primary_key=True)
     voters = db.Column(db.Integer)
     rating = db.Column(db.Integer)
     def update_rating(self,rating):
@@ -86,6 +86,35 @@ class GroupCatalogItem(db.Model):
     def __to_dict__(self):
         return {'id':self.id,'info':self.info,'alias':self.alias,'items':self.__get_children__(),'similar':self.__get_similar()}
 
+class SideCatalogGroup(db.Model):
+    id = db.Column(db.Integer(),primary_key=True)
+    parent_id = db.Column(db.Integer(),nullable=True)
+    name =      db.Column(db.String(),nullable=True) 
+    active  =   db.Column(db.Integer())
+    description = db.Column(db.String(),nullable=True)
+    def __init__(self,id,parent_id,name):
+        self.active = 1
+        self.id, self.parent_id,self.name = id,parent_id,name
+    
+
+class SideCatalogItemImage(db.Model):
+    id = db.Column(db.Integer(),primary_key=True)
+    item_id = db.Column(db.ForeignKey('side_catalog_item.id'))
+    url     = db.Column(db.String())
+    def __init__(self,item_id,url):
+        self.item_id,self.url = item_id,url
+
+class SideCatalogItem(db.Model):
+    id = db.Column(db.Integer(),primary_key=True)
+    sku = db.Column(db.String())
+    data = db.Column(db.String())
+    images = db.relationship('SideCatalogItemImage')
+    rating = db.relationship('ItemRating',primaryjoin=sku==ItemRating.id, uselist=False)
+    def __init__(self,id,sku,data):
+        self.id,self.sku,self.data = id,sku,data
+    def __to_dict__(self):
+        return {'id':self.id,'sku':self.sku,'data':json.loads(self.data),'images':[i.url for i in self.images]}
+
 class CatalogItem(db.Model):
     id = db.Column(db.Integer,primary_key=True)
     base_image     =db.Column(db.String(255))
@@ -105,7 +134,7 @@ class CatalogItem(db.Model):
     #image_1 =db.Column(db.String(255))
     image_2 =db.Column(db.String(255))
     image_3 =db.Column(db.String(255))
-    rating = db.relationship('ItemRating',primaryjoin=sku==ItemRating.id, uselist=False)
+    #rating = db.relationship('ItemRating',primaryjoin=sku==ItemRating.id, uselist=False)
 
     def __init__(self,date,season,dic):
         self.created_time = date #datetime.now()
@@ -238,6 +267,76 @@ class MapItem(db.Model):
         return dict({'id':self.id,'name':self.name,'position':json.loads(self.position),'city_id':self.city_id})
 
 
+# blog models
+blog_blocks = db.Table('blog_page_blocks',
+    db.Column('page_id',  db.Integer, db.ForeignKey('blog_page_item.id')),
+    db.Column('block_id', db.Integer, db.ForeignKey('blog_block_item.id')),
+    db.Column('place',    db.String())
+)
+
+class BlogCategory(db.Model):
+    id   = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(255))
+    pages = db.relationship('BlogPageItem')
+    def __get_children__(self):
+        return BlogPageItem.query.filter(BlogPageItem.category_id==self.id).all()
+    def __init__(self,name):
+        self.name = name
+
+class BlogPageItem(db.Model):
+    id   = db.Column(db.Integer, primary_key = True)
+    url  = db.Column(db.String())
+    meta = db.Column(db.String())
+    category_id = db.Column(db.Integer, db.ForeignKey('blog_category.id'), nullable=True)
+    blocks = db.relationship('BlogBlockItem',secondary=blog_blocks,backref=db.backref('BlogPageItem'),order_by="BlogBlockItem.order")
+
+    def __to_dict__(self):
+        result = {}
+        result['id'] =     self.id
+        result['meta'] =   self.meta
+        result['url'] =    self.url
+        result['subitems'] = [i.__to_dict__() for i in self.blocks]
+        return result
+
+    def __init__(self,url,meta):
+        if not url: url = '123213'
+        if not meta: meta = ''
+        self.url = url
+        self.meta =  meta
+
+
+
+class BlogBlockItem(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    alias = db.Column(db.String(255))
+    parent_id = db.Column(db.Integer, db.ForeignKey('blog_block_item.id'), nullable=True)
+    type = db.Column(db.String(255))
+    data = db.Column(db.String())
+    order = db.Column(db.Integer, nullable=True)
+    subitems = db.relationship('BlogBlockItem',cascade="all,delete",remote_side=[parent_id],order_by="BlogBlockItem.order")
+
+    def __get_page__(self,item=False):
+        if not item: item = self
+        while item and not item.BlogPageItem and item.parent_id: item=BlogBlockItem.query.get(item.parent_id)
+        if not item.BlogPageItem:
+            item.subitems=[]
+            db.session.delete(item)
+            return False
+        return item.BlogPageItem[0]
+
+    def __get_children__(self):
+        return [sub.__to_dict__() for sub in self.subitems]
+    def __to_dict__(self):
+        return dict({'id':self.id, 'parent_id':self.parent_id,'type':self.type,'data':json.loads(self.data),'subitems':self.__get_children__(),'order':self.order})
+
+    def __init__(self, parent_id, type, data):
+        self.parent_id = parent_id
+        self.type = type
+        self.data = data
+
+    def __repr__(self):
+        return "<block %r>" % self.id
+
 class BlockItem(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     alias = db.Column(db.String(255))
@@ -249,15 +348,12 @@ class BlockItem(db.Model):
 
     def __get_page__(self,item=False):
         if not item: item = self
-        while item and not item.PageItem and item.parent_id:
-            item=BlockItem.query.get(item.parent_id)
-
+        while item and not item.PageItem and item.parent_id: item=BlockItem.query.get(item.parent_id)
         if not item.PageItem:
             item.subitems=[]
             db.session.delete(item)
             return False
         return item.PageItem[0]
-        #return
 
     def __get_children__(self):
         return [sub.__to_dict__() for sub in self.subitems]

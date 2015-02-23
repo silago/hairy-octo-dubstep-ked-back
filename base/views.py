@@ -1,5 +1,6 @@
 import sys, os, io
 from flask.ext.restful import Resource, Api
+from sqlalchemy.sql import func
 from flask import request, g, session, make_response
 from base.models import *
 import json
@@ -56,24 +57,67 @@ class CatalogCacheContainer():
 
 #Мужская или женская или жетская
 class CatalogSegments(Resource):
+    def putAllItemsHere(self):
+        items = []
+        SideCatalogItem.query.delete()
+        SideCatalogGroup.query.delete()
+        SideCatalogItemImage.query.delete()
+        url='http://keddoshop.com/api/rest/categories/'
+        root_id = 2
+        #    url = 'http://keddoshop.com/api/rest/products?limit=100&page='+str(page)
+        #    page+=1
+        response = requests.get(url+str(root_id))
+        data = json.loads(response.content.decode('utf-8'))
+        #    prev_first_sku = curr_first_sku
+        #    curr_first_sku = list(data.items())[0][1]['sku']
+        #   print(prev_first_sku)
+        #    print(curr_first_sku)
+        #    if (prev_first_sku!=curr_first_sku):
+        for j in data:
+            if j['parent_id']==root_id:
+                item = SideCatalogGroup(j['category_id'],j['parent_id'],j['name'])
+                db.session.add(item)
+                if j['child_id']:
+                    for k in j['child_id'].split(','):
+                        sub_data = json.loads(requests.get(url+str(k)).content.decode('utf-8'))
+                        for s in sub_data:
+                            sub_item = SideCatalogGroup(s['category_id'],s['parent_id'],s['name'])
+                            db.session.add(sub_item)
+        db.session.commit()
+        return {'status':'ok'}
+    
+    def post(self):
+        data = json.loads(request.data.decode('utf-8'))
+        data = data["data"]
+        item = SideCatalogGroup.query.get(data["id"]) 
+        item.description = data["description"]
+        db.session.add(item)
+        db.session.commit()
+        return self.get()
+
     def get(self):
         global CATALOG_CACHE
-        """ here get catalog from keddoshop """
-        """ get all items with parent id 12 """
-        """ except brands """
-        """ need to implement data cache """
-        #http = PoolManager()
-        url = 'http://keddoshop.com/api/rest/categories/2/'
-        if 'CatalogSegments' not in CATALOG_CACHE:
-            response = requests.get(url)
-            data = json.loads(response.content.decode('utf-8')) 
-            """ adapter """
-            result_data = []
-            for i in data:
-                if (i['parent_id'] == 2):
-                    result_data+=[{'segment':i['name'],'category_id':i['category_id']}]
-            CATALOG_CACHE['CatalogSegments']=result_data
-        result_data = CATALOG_CACHE['CatalogSegments']
+        if (db.session.query(SideCatalogGroup.id).count() == 0):
+            self.putAllItemsHere()
+            
+
+        result_data = [{'id':i.id,'parent_id':i.parent_id,'segment':i.name,'description':i.description,'name':i.name} for i in SideCatalogGroup.query.filter(SideCatalogGroup.parent_id=='2',SideCatalogGroup.active==1).all()]
+        #""" here get catalog from keddoshop """
+        #""" get all items with parent id 12 """
+        #""" except brands """
+        #""" need to implement data cache """
+        ##http = PoolManager()
+        #url = 'http://keddoshop.com/api/rest/categories/2/'
+        #if 'CatalogSegments' not in CATALOG_CACHE:
+        #    response = requests.get(url)
+        #    data = json.loads(response.content.decode('utf-8')) 
+        #    """ adapter """
+        #    result_data = []
+        #    for i in data:
+        #        if (i['parent_id'] == 2):
+        #            result_data+=[{'segment':i['name'],'category_id':i['category_id']}]
+        #    CATALOG_CACHE['CatalogSegments']=result_data
+        #result_data = CATALOG_CACHE['CatalogSegments']
         result = {'data':result_data}
         #print(tree)
         #r = http.request('GET', url)
@@ -142,34 +186,127 @@ class CatalogCollections(Resource):
 
 class CatalogTypes(Resource):
     def get(self,segment_alias):
-        global CATALOG_CACHE
-        for i in CATALOG_CACHE['CatalogSegments']:
-            print('>>>>>>>')
-            print(i)
-            print('<<<<<<<')
-            if i['segment']==segment_alias:
-                print("!!!!!!!!")
-                url = 'http://keddoshop.com/api/rest/categories/'+i['category_id']+'/'
-                if 'CatalogTypes-'+segment_alias not in CATALOG_CACHE:
-                    response = requests.get(url)
-                    data = json.loads(response.content.decode('utf-8')) 
-                    result_data = []
-                    for j in data:
-                        print("if"+str(j['parent_id'])+"=="+str(i['category_id']))
-                        if (j['parent_id'] == i['category_id']):
-                            print("true")
-                            result_data+=[{'item_type':j['name'],'category_id':j['category_id']}]
-                        else:
-                            print("false")
-                    CATALOG_CACHE['CatalogTypes'+segment_alias]=result_data
-                result_data = CATALOG_CACHE['CatalogTypes'+segment_alias]
-                return {'data':result_data}
+        parent_item = SideCatalogGroup.query.filter(SideCatalogGroup.name==segment_alias).first()
+        child_items = SideCatalogGroup.query.filter(SideCatalogGroup.parent_id==parent_item.id).all()
+        rand_item   = SideCatalogItem.query.order_by(func.random()).limit(1).first()
+        result_data = [{'id':i.id,'parent_id':i.parent_id,'item_type':i.name,'description':i.description,'name':i.name} for i in child_items] 
+        return {'rand_item':rand_item.__to_dict__(),'description':parent_item.description,'data':result_data}
+        #global CATALOG_CACHE
+        #if 'CatalogSegments' not in CATALOG_CACHE: CatalogSegments().get() 
+        #for i in CATALOG_CACHE['CatalogSegments']:
+        #    if i['segment']==segment_alias:
+        #        if 'CatalogTypes'+segment_alias not in CATALOG_CACHE:
+        #            url = 'http://keddoshop.com/api/rest/categories/'+i['category_id']+'/'
+        #            response = requests.get(url)
+        #            data = json.loads(response.content.decode('utf-8')) 
+        #            result_data = []
+        #            for j in data:
+        #                if (str(j['parent_id']) == str(i['category_id'])):
+        #                    result_data+=[{'item_type':j['name'],'category_id':j['category_id']}]
+        #            CATALOG_CACHE['CatalogTypes'+segment_alias]=result_data
+        #        result_data = CATALOG_CACHE['CatalogTypes'+segment_alias]
+        #        return {'data':result_data}
         return []
         #return {'data':[i.__to_dict__() for i in CatalogItem.query.group_by(CatalogItem.item_type).filter(CatalogItem.coll_status==1,CatalogItem.group_catalog_id!=None,CatalogItem.segment==segment_alias).all()]}
         #pass
 
 class CatalogGroups(Resource):
+    def getItemMap(self,key):
+        map_dict = {
+                    'entity_id':'id',
+                    'image_url':'base_image',
+                    'sku':'sku',
+                    'onec_cvetnasaite':'color',
+                    'onec_materialverha':'material_top',
+                    'lining':False,
+                    'analpa_size':False,
+                    'insole':False,
+                    'segment':False,
+                    'season':False,
+                    'mark':False,
+                    'item_type':False,
+                    'created_time':False,
+                    'group_catalog_id':False,
+                    'coll_status':False,
+                    'image_2':False,
+                    'image_3':False,
+                    }
+        if key in map_dict:
+            return map_dict[key]
+        else: return key
+        return map_dict
+
+    def putAllItemsHere(self):
+        page = 1
+        items = []
+        prev_first_sku = '-1'
+        curr_first_sku = '-2'
+        SideCatalogItem.query.delete()
+        img_url_prefix='http://keddoshop.com/api/rest/products/'
+        while (prev_first_sku!=curr_first_sku):
+            url = 'http://keddoshop.com/api/rest/products?limit=100&page='+str(page)
+            print(url)
+            page+=1
+            response = requests.get(url)
+            data = json.loads(response.content.decode('utf-8'))
+            prev_first_sku = curr_first_sku
+            curr_first_sku = list(data.items())[0][1]['sku']
+            print(prev_first_sku)
+            print(curr_first_sku)
+            if (prev_first_sku!=curr_first_sku):
+                for jkey,j in data.items():
+                    item = SideCatalogItem(jkey,j['sku'],json.dumps(j))
+                    db.session.add(item)
+                    for image in json.loads(requests.get(img_url_prefix+jkey+'/images').content.decode('utf-8')):
+                        if (image['url']):
+                            img = SideCatalogItemImage(jkey,image['url'])
+                            db.session.add(img)
+        db.session.commit()
+        return {'status':'ok'}
+
+            
+
     def get(self,segment_alias,type_alias):
+        global CATALOG_CACHE
+        if (db.session.query(SideCatalogItem.id).count() == 0):
+            self.putAllItemsHere()
+        parent_item = SideCatalogGroup.query.filter(SideCatalogGroup.name==segment_alias).first()
+
+        items = SideCatalogItem.query.limit(20).all() or []
+        result = []
+        for i in items:
+            result+=[i.__to_dict__()]
+        return {'data':result,'description':parent_item.description}
+        #if 'CatalogTypes'+segment_alias not in CATALOG_CACHE: CatalogTypes().get(segment_alias)
+        #type_alias = type_alias.replace('---','/')
+        #for i in CATALOG_CACHE['CatalogTypes'+segment_alias]:
+        #    if i['item_type']==type_alias:
+        #        if 'CatalogTypes'+segment_alias+type_alias not in CATALOG_CACHE: 
+        #            #url = 'http://keddoshop.com/api/rest/products?filter[1][attribute]=onec_vidobuvi&filter[1][in]='+i['category_id']
+        #            url = 'http://keddoshop.com/api/rest/products'
+        #            print(url)
+        #            response = requests.get(url)
+        #            data = json.loads(response.content.decode('utf-8')) 
+        #            result_data = {}
+        #            for jk,j in data.items():
+        #                if True:
+        #            #    if (str(j['parent_id']) == str(i['category_id'])):
+        #                   d = self.getItemMap
+        #            #       #a = [v for k,v in data.items()]o
+        #                   result_data[jk]={}
+        #                   result_data[jk]={  d(item_key)  :item_data for (item_key,item_data) in j.items()} 
+        #                   #result_data+=[{'id':j['ent'],'category_id':j['category_id']}]
+        #            CATALOG_CACHE['CatalogTypes'+segment_alias+type_alias]=result_data
+        #        result_data = CATALOG_CACHE['CatalogTypes'+segment_alias+type_alias]
+        #        return {'data':result_data}
+
+            #CatalogTypes().get(segment_alias)
+        return []
+        #for i in 'CatalogTypes'+segment_alias:
+        print(CATALOG_CACHE['CatalogTypes'+segment_alias])
+
+
+        print("CatalogGroups.Get")
         type_alias = type_alias.replace('---','/')
         filt = True if type_alias=='*' else CatalogItem.item_type==type_alias 
         return {'data':[i.__to_dict__() for i in GroupCatalogItem.query.join(GroupCatalogItem.items).filter(filt,CatalogItem.coll_status==1,CatalogItem.segment==segment_alias).all()]}
@@ -178,12 +315,30 @@ class CatalogGroups(Resource):
 
 class CatalogItems(Resource):
     def get(self,segment_alias,type_alias,group_id):
-        result = GroupCatalogItem.query.get(group_id).__to_dict__()
-        dir = STATIC_FILES_DIR+'/catalog/keddo'
-        url = STATIC_FILES_URL+'catalog/keddo/'
-        for i in result['items']:
-            i['files'] = [STATIC_FILES_URL+'catalog/'+i['base_image'],]
-            i['files']+= [url+f for f in os.listdir(dir) if i['sku'].replace('/','-') in f ]
+        group_id = unquote_twice(group_id)
+        result = []
+        items = SideCatalogItem.query.get(group_id)
+        result = items.__to_dict__()
+        #url = 'http://keddoshop.com/api/rest/products/'+group_id
+        #print(url)
+        #print('####')
+        #if 'CatalogGroups'+group_id not in CATALOG_CACHE:
+        #    response = requests.get(url)
+        #    data = json.loads(response.content.decode('utf-8')) 
+        #    result_data = []
+        #    result_data = data
+        #    #for j in data:
+        #    #    if (str(j['parent_id']) == str(i['category_id'])):
+        #    #        result_data+=[{'item_type':j['name'],'category_id':j['category_id']}]
+        #    CATALOG_CACHE['CatalogGroups'+group_id]=result_data
+        #result_data = CATALOG_CACHE['CatalogGroups'+group_id]
+        #return {'data':result_data}
+        #result = GroupCatalogItem.query.get(group_id).__to_dict__()
+        #dir = STATIC_FILES_DIR+'/catalog/keddo'
+        #url = STATIC_FILES_URL+'catalog/keddo/'
+        #for i in result['items']:
+        #    i['files'] = [STATIC_FILES_URL+'catalog/'+i['base_image'],]
+        #    i['files']+= [url+f for f in os.listdir(dir) if i['sku'].replace('/','-') in f ]
         return {'data':result}
 
 """ catalog groups """
@@ -493,7 +648,6 @@ class Page(Resource):
                 new_block.subitems = self.__create_blocks(block['subitems'],new_block.id)
             db.session.add(new_block)
             db.session.commit()
-
         return result
 
     def __append_blocks(self,items,page_id):
@@ -536,10 +690,94 @@ class Rating(Resource):
         id = unquote_twice(id)
         rating = int(rating)
         rating = rating if rating<=5 else 5
-        rating = ItemRating.query.get(id) or ItemRating(id)
-        rating.update_rating(rating)
-        db.session.add(rating)
-        db.session.commit(rating)
+        irating = ItemRating.query.get(id) or ItemRating(id,rating)
+        irating.update_rating(rating)
+        db.session.add(irating)
+        db.session.commit()
+
+class Blog(Resource):
+    def get(self):
+        coll = (request.args.get('categories')) or False
+        if (coll):
+            return {'data':[{'name':i.name,'id':i.id} for i in BlogCategory.query.all()]}
+        else:
+            return {'data':[i.__to_dict__() for i in BlogPageItem.query.limit(10).all()]}
+    def post(self):
+        data = request.data.decode('utf-8')
+        try:
+            data = json.loads(data)
+        except Exception:
+            print("cannot load json data")
+        cat_ids = [i["id"] for i in data["data"] if "id" in i]
+        print(cat_ids)
+        for d in BlogCategory.query.filter(~BlogCategory.id.in_((cat_ids))).all():
+            d.query.delete()
+        for i in data["data"]:
+            cat = (BlogCategory.query.get(i["id"]) if "id" in i else BlogCategory(i["name"])) or BlogCategory(i["name"])
+            cat.name=(i["name"])
+            db.session.add(cat)
+        db.session.commit()
+        return self.get()
+
+class BlogPageBlock(Resource):
+    def get(self,page_name,alias,id):
+       return BlogBlockItem.query.filter(BlogBlockItem.id==id).first().__to_dict__()
+
+# page name - it is category name
+class BlogPages(Resource):
+    def get(self,page_name):
+       return {'name':page_name,'subitems':[ i.__to_dict__() for i in BlogCategory.query.filter(BlogCategory.name==page_name).first().pages]}
+    def post(self,page_name):
+        category = BlogCategory.query.filter(BlogCategory.name==page_name).first()
+        data = request.data.decode('utf-8')
+        try:
+            data = json.loads(data)
+        except Exception:
+            print("cannot load json data")
+        data = data["data"]
+        category_pages = []
+        for page in data["subitems"]:
+            page_item = BlogPageItem.query.get(page["id"]) if "id" in page else BlogPageItem("","")
+            page_item.blocks = self.__create_blocks(page['subitems'])
+            db.session.add(page_item)
+            category_pages.append(page_item)
+        category.pages = category_pages
+        
+        #item = PageItem.query.filter(PageItem.url==url).first()
+        #if not item:
+        #    item = PageItem(url,json.dumps([]))
+        #if ('meta' in data['data']):
+        #    item.meta = json.dumps(data['data']['meta'])
+        #new_blocks = self.__create_blocks(data['data']['subitems'])
+        #item.blocks = new_blocks
+        db.session.add(category)
+        db.session.commit()
+        return self.get(page_name)
+
+    @login_required
+    def __create_blocks(self,data,parent_id = None):
+        result = []
+        i = 0
+        for block in data:
+            i+=1
+            if (not block or block['type'] == 'deleted'):
+                continue
+            if 'id' not in block:
+                new_block = BlogBlockItem(parent_id,block['type'],json.dumps(block['data']))
+            else:
+                new_block = BlogBlockItem.query.get(block['id'])
+                new_block.data=json.dumps(block['data'])
+            new_block.order = i
+            db.session.add(new_block)
+            db.session.commit()
+            result.append(new_block)
+            if 'subitems' in block:
+                new_block.subitems = self.__create_blocks(block['subitems'],new_block.id)
+            db.session.add(new_block)
+            db.session.commit()
+        return result
+        
+
 
 class Block(Resource):
     def get(self,alias):
@@ -585,3 +823,4 @@ class Block(Resource):
         print((request.data))
         #data = json.load(request.data)
         return {}
+
