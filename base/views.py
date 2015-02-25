@@ -91,6 +91,7 @@ class CatalogSegments(Resource):
         data = data["data"]
         item = SideCatalogGroup.query.get(data["id"]) 
         item.description = data["description"]
+        item.after_menu = data["after_menu"]
         db.session.add(item)
         db.session.commit()
         return self.get()
@@ -101,7 +102,7 @@ class CatalogSegments(Resource):
             self.putAllItemsHere()
             
 
-        result_data = [{'id':i.id,'parent_id':i.parent_id,'segment':i.name,'description':i.description,'name':i.name} for i in SideCatalogGroup.query.filter(SideCatalogGroup.parent_id=='2',SideCatalogGroup.active==1).all()]
+        result_data = [{'id':i.id,'parent_id':i.parent_id,'segment':i.name,'after_menu':i.after_menu,'description':i.description,'name':i.name} for i in SideCatalogGroup.query.filter(SideCatalogGroup.parent_id=='2',SideCatalogGroup.active==1).all()]
         #""" here get catalog from keddoshop """
         #""" get all items with parent id 12 """
         #""" except brands """
@@ -699,7 +700,7 @@ class Blog(Resource):
     def get(self):
         coll = (request.args.get('categories')) or False
         if (coll):
-            return {'data':[{'name':i.name,'id':i.id} for i in BlogCategory.query.all()]}
+            return {'data':[{'name':i.name,'id':i.id,'visible':i.visible} for i in BlogCategory.query.all()]}
         else:
             return {'data':[i.__to_dict__() for i in BlogPageItem.query.limit(10).all()]}
     def post(self):

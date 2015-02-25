@@ -92,6 +92,8 @@ class SideCatalogGroup(db.Model):
     name =      db.Column(db.String(),nullable=True) 
     active  =   db.Column(db.Integer())
     description = db.Column(db.String(),nullable=True)
+    after_menu  = db.Column(db.String(),nullable=True)
+    
     def __init__(self,id,parent_id,name):
         self.active = 1
         self.id, self.parent_id,self.name = id,parent_id,name
@@ -146,7 +148,7 @@ class CatalogItem(db.Model):
     
     def __to_dict__(self):
         result = {k:str(v) for k,v in  vars(self).items() if k[0]!='_'}
-        result['rating'] = self.rating.get_rating() if self.rating else 5
+        #result['rating'] = self.rating.get_rating() if self.rating else 5
         return result
             
         #return { k:getattr(self,k) for k,v in vars(self).items()}
@@ -278,9 +280,11 @@ class BlogCategory(db.Model):
     id   = db.Column(db.Integer, primary_key = True)
     name = db.Column(db.String(255))
     pages = db.relationship('BlogPageItem')
+    visible = db.Column(db.Integer())
     def __get_children__(self):
         return BlogPageItem.query.filter(BlogPageItem.category_id==self.id).all()
     def __init__(self,name):
+        self.visible = 1
         self.name = name
 
 class BlogPageItem(db.Model):
