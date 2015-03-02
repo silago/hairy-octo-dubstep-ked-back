@@ -716,6 +716,7 @@ class Blog(Resource):
         for i in data["data"]:
             cat = (BlogCategory.query.get(i["id"]) if "id" in i else BlogCategory(i["name"])) or BlogCategory(i["name"])
             cat.name=(i["name"])
+            cat.visible=(i["visible"])
             db.session.add(cat)
         db.session.commit()
         return self.get()

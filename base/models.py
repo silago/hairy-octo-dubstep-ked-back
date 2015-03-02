@@ -382,7 +382,7 @@ class PageItem(db.Model):
     def __to_dict__(self):
         result = {}
         result['id'] =     self.id
-        result['meta'] =   self.meta
+        result['meta'] =   json.loads(self.meta)
         result['url'] =    self.url
         result['subitems'] = [i.__to_dict__() for i in self.blocks]
         return result
