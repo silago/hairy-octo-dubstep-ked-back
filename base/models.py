@@ -295,11 +295,13 @@ class BlogPageItem(db.Model):
     blocks = db.relationship('BlogBlockItem',secondary=blog_blocks,backref=db.backref('BlogPageItem'),order_by="BlogBlockItem.order")
 
     def __to_dict__(self):
+        category = self.category_id
         result = {}
         result['id'] =     self.id
         result['meta'] =   self.meta
         result['url'] =    self.url
         result['subitems'] = [i.__to_dict__() for i in self.blocks]
+        result['category_name'] = BlogCategory.query.get(self.category_id).name if self.category_id else False
         return result
 
     def __init__(self,url,meta):
