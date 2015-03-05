@@ -97,7 +97,19 @@ class SideCatalogGroup(db.Model):
     def __init__(self,id,parent_id,name):
         self.active = 1
         self.id, self.parent_id,self.name = id,parent_id,name
-    
+
+class SideCatalogAttributes(db.Model):
+    id = db.Column(db.Integer(), primary_key=True)
+    entity_type_id = db.Column(db.Integer())
+    attribute_code = db.Column(db.String())
+    frontend_label = db.Column(db.String())
+
+class SideCatalogProperties(db.Model):
+    value_id = db.Column(db.Integer(),primary_key=True)
+    option_id = db.Column(db.Integer())
+    value = db.Column(db.String())
+    attribute_id = db.Column(db.Integer())
+    attribute_code = db.Column(db.String())
 
 class SideCatalogItemImage(db.Model):
     id = db.Column(db.Integer(),primary_key=True)
