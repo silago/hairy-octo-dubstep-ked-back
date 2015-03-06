@@ -12,5 +12,10 @@ CORS(app, resources={r'/api/*':{"origins":"http://localhost:9000","supports_cred
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 #app.config['SQLALCHEMY_ECHO']=True
 db = SQLAlchemy(app)
-STATIC_FILES_DIR = '/home/silago/work/keddo/application/frontend/app/static'
+
+ROOT_DIR  = '/home/aovchinnikov/work/keddo/frontend/app/'
+STATIC_FILES_SUB = 'static/'
+
+STATIC_FILES_DIR = ROOT_DIR+STATIC_FILES_SUB 
+
 STATIC_FILES_URL = 'http://localhost:9000/static/'

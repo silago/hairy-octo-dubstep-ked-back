@@ -5,7 +5,7 @@ from flask import request, g, session, make_response
 from base.models import *
 import json
 #from urllib3 import PoolManager
-from config import db, STATIC_FILES_DIR, STATIC_FILES_URL
+from config import db, STATIC_FILES_DIR, STATIC_FILES_URL, STATIC_FILES_SUB
 from urllib.parse import unquote
 import requests
 from xml.etree import ElementTree
@@ -450,7 +450,8 @@ class Map(Resource):
 
 class Files(Resource):
     def get(self):
-        return {'data':[STATIC_FILES_URL+i for i in os.listdir(STATIC_FILES_DIR) if os.path.splitext(i)[1] in ['.jpg','.jpeg','.gif','.png']]}
+        #return {'data':[STATIC_FILES_URL+i for i in os.listdir(STATIC_FILES_DIR) if os.path.splitext(i)[1] in ['.jpg','.jpeg','.gif','.png']]}
+        return {'data':[STATIC_FILES_SUB+i for i in os.listdir(STATIC_FILES_DIR) if os.path.splitext(i)[1] in ['.jpg','.jpeg','.gif','.png']]}
 
     #@login_required
     def post(self):
