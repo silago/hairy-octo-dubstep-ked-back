@@ -628,8 +628,9 @@ class Page(Resource):
             item = PageItem(url,json.dumps([]))
         if ('meta' in data['data']):
             item.meta = json.dumps(data['data']['meta'])
-        new_blocks = self.__create_blocks(data['data']['subitems'])
-        item.blocks = new_blocks
+        if ('subitems' in data['data']):
+            new_blocks = self.__create_blocks(data['data']['subitems'])
+            item.blocks = new_blocks
         db.session.add(item)
         db.session.commit()
         return self.get(url)
