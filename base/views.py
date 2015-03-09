@@ -748,9 +748,11 @@ class BlogPages(Resource):
         category_pages = []
         for page in data["subitems"]:
             page_item = BlogPageItem.query.get(page["id"]) if "id" in page else BlogPageItem("","")
+            page_item.category_id = page["category_id"]
             page_item.blocks = self.__create_blocks(page['subitems'])
             db.session.add(page_item)
-            category_pages.append(page_item)
+            if (page_item.category_id==category.id):
+                category_pages.append(page_item)
         category.pages = category_pages
         
         #item = PageItem.query.filter(PageItem.url==url).first()

@@ -313,6 +313,7 @@ class BlogPageItem(db.Model):
         result['meta'] =   self.meta
         result['url'] =    self.url
         result['subitems'] = [i.__to_dict__() for i in self.blocks]
+        result['category_id'] = self.category_id 
         result['category_name'] = BlogCategory.query.get(self.category_id).name if self.category_id else False
         return result
 
