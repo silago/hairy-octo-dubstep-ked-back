@@ -10,7 +10,8 @@ import json
 from config import db, STATIC_FILES_DIR, STATIC_FILES_URL, STATIC_FILES_SUB, ROOT_DIR
 from urllib.parse import unquote
 import requests
-from xml.etree import ElementTree
+#from xml.etree import ElementTree
+from lxml import etree #import ElementTree
 import base64
 import hashlib
 from flask.ext.login import login_user, logout_user, current_user, login_required
@@ -432,12 +433,50 @@ class Map(Resource):
             response = requests.get(url)
 
         #name= ElementTree.fromstring(response.content.decode('utf-8'))[0][1][0][0][0][3][0][3][1][1][0].text
-        pos  = ElementTree.fromstring(response.content.decode('utf-8'))[0][1][0][2].text
+        #pos  = etree.fromstring(response.content.decode('utf-8'))[0][1][0][2].text
+        tree = etree.fromstring(response.content)
+        pos  = tree.find('.//{*}pos').text.split(' ')[::-1]
         city = CityItem.query.filter(CityItem.name==city_name).first() or CityItem(city_name,pos)
         db.session.add(city)
         #db.session.commit()
         return city
-        
+       
+    def getFromUrl(self,row,t=False):
+            name = row[0].lstrip()
+            city    = row[1].lstrip()
+            if not t:
+                address = row[3]
+                address = re.sub('тел.*', '', address)
+                address = re.sub('Дом обуви "ТТ",?','', address)
+                address = re.sub('-', ' ', address)
+                address = address.lstrip()
+                if (city[1:-1] not in address and re.sub('-',' ',city[1:-1]) not in address):
+                    address = city+' '+address
+            else:
+                address = t
+            #address="Невинномысск, ул. Гагарина, д. 1 в, ТЦ," 
+            url = "http://geocode-maps.yandex.ru/1.x/?&geocode="+address
+            print(url)
+            print(name)
+            print(address)
+            try:
+                response = requests.get(url)
+            except:
+                sleep(10)
+                response = requests.get(address)
+
+            #country =  ElementTree.fromstring(response.content.decode('utf-8'))[0][1][0][0][0][3]
+            try: 
+                tree = etree.fromstring(response.content)
+                country = tree.find('.//{*}CountryName').text
+                pos  = tree.find('.//{*}pos').text.split(' ')[::-1]
+            except:
+                return self.getFromUrl(row,row[2])
+            return country, pos
+            #cc = country+', '+city
+            #city_el = self.addCity(country,city)
+            #item = MapItem(name,pos,city_el.id,row[3])
+            #db.session.add(item)
 
     def runOnce(self):
         #getObjectCollection->featureMember->geoObject->point
@@ -450,25 +489,22 @@ class Map(Resource):
         with open(ROOT_DIR+'../../../sources/shops.csv') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             for row in reader:
-                name = row[0].lstrip()
-                address = row[3].lstrip()
-                address = re.sub('тел.*', '', address)
-                address = re.sub('-', ' ', address)
-                url = "http://geocode-maps.yandex.ru/1.x/?&geocode="+address
-                try:
-                    response = requests.get(url)
-                except:
-                    sleep(10)
-                    response = requests.get(url)
 
-                print(address)
-                country = ElementTree.fromstring(response.content.decode('utf-8'))[0][1][0][0][0][3][0][2].text
-                city    = row[1].lstrip()#ElementTree.fromstring(response.content.decode('utf-8'))[0][1][0][0][0][3][0][3][1][1][0].text
-                cc = country+', '+city
+                name = row[0].lstrip()
+                #address = row[3]
+                #address = re.sub('тел.*', '', address)
+                #address = re.sub('Дом обуви "ТТ",?','', address)
+                #address = re.sub('-', ' ', address)
+                #address = address.lstrip()
+                city    = row[1].lstrip()
                 
+                #if (city[1:-1] not in address and re.sub('-',' ',city[1:-1]) not in address):
+                #    address = city+' '+address
+                country,pos = self.getFromUrl(row)
+
+                cc = country+', '+city
                 city_el = self.addCity(country,city)
-                pos  = ElementTree.fromstring(response.content.decode('utf-8'))[0][1][0][2].text
-                item = MapItem(name,pos,city_el.id)
+                item = MapItem(name,pos,city_el.id,row[3])
                 db.session.add(item)
         db.session.commit()
 
@@ -486,7 +522,7 @@ class Map(Resource):
         return {'status':'ok'}
     def get(self):
         #if (db.session.query(MapItem.id).count() == 0):
-        return self.runOnce() 
+        #return self.runOnce() 
         items = MapItem.query.all()
         return {'data':[i.__to_dict__() for i in items]} or dict()
 
