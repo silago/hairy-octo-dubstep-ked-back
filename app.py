@@ -26,6 +26,7 @@ api.add_resource(views.BlogPageBlock,'/api/blog/<string:page_name>/<string:alias
 api.add_resource(views.Auth,'/api/auth')
 api.add_resource(views.User,'/api/user')
 api.add_resource(views.Files,'/api/files')
+#api.add_resource(views.Map,'/api/map')
 api.add_resource(views.Map,'/api/map')
 api.add_resource(views.City,'/api/city')
 api.add_resource(views.Rights,'/api/rights/<int:group_id>')

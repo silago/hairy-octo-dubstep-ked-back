@@ -1,11 +1,13 @@
 import sys, os, io
+from time import sleep
+import re
 from flask.ext.restful import Resource, Api
 from sqlalchemy.sql import func
 from flask import request, g, session, make_response
 from base.models import *
 import json
 #from urllib3 import PoolManager
-from config import db, STATIC_FILES_DIR, STATIC_FILES_URL, STATIC_FILES_SUB
+from config import db, STATIC_FILES_DIR, STATIC_FILES_URL, STATIC_FILES_SUB, ROOT_DIR
 from urllib.parse import unquote
 import requests
 from xml.etree import ElementTree
@@ -421,7 +423,70 @@ class City(Resource):
 
 
 class Map(Resource):
+    def addCity(self,country,city_name):
+        url = "http://geocode-maps.yandex.ru/1.x/?&geocode="+country+","+city_name
+        try:
+            response = requests.get(url)
+        except:
+            sleep(10)
+            response = requests.get(url)
+
+        #name= ElementTree.fromstring(response.content.decode('utf-8'))[0][1][0][0][0][3][0][3][1][1][0].text
+        pos  = ElementTree.fromstring(response.content.decode('utf-8'))[0][1][0][2].text
+        city = CityItem.query.filter(CityItem.name==city_name).first() or CityItem(city_name,pos)
+        db.session.add(city)
+        #db.session.commit()
+        return city
+        
+
+    def runOnce(self):
+        #getObjectCollection->featureMember->geoObject->point
+        #url='http://keddoshop.com/api/rest/categories/'
+        CityItem.query.delete()
+        MapItem.query.delete()
+
+        
+        shops = []
+        with open(ROOT_DIR+'../../../sources/shops.csv') as csvfile:
+            reader = csv.reader(csvfile, delimiter=',')
+            for row in reader:
+                name = row[0].lstrip()
+                address = row[3].lstrip()
+                address = re.sub('тел.*', '', address)
+                address = re.sub('-', ' ', address)
+                url = "http://geocode-maps.yandex.ru/1.x/?&geocode="+address
+                try:
+                    response = requests.get(url)
+                except:
+                    sleep(10)
+                    response = requests.get(url)
+
+                print(address)
+                country = ElementTree.fromstring(response.content.decode('utf-8'))[0][1][0][0][0][3][0][2].text
+                city    = row[1].lstrip()#ElementTree.fromstring(response.content.decode('utf-8'))[0][1][0][0][0][3][0][3][1][1][0].text
+                cc = country+', '+city
+                
+                city_el = self.addCity(country,city)
+                pos  = ElementTree.fromstring(response.content.decode('utf-8'))[0][1][0][2].text
+                item = MapItem(name,pos,city_el.id)
+                db.session.add(item)
+        db.session.commit()
+
+        #for j in data:
+        #    if j['parent_id']==root_id:
+        #        item = SideCatalogGroup(j['category_id'],j['parent_id'],j['name'])
+        #        db.session.add(item)
+        #        if j['child_id']:
+        #            for k in j['child_id'].split(','):
+        #                sub_data = json.loads(requests.get(url+str(k)).content.decode('utf-8'))
+        #                for s in sub_data:
+        #                    sub_item = SideCatalogGroup(s['category_id'],s['parent_id'],s['name'])
+        #                    db.session.add(sub_item)
+        #db.session.commit()
+        return {'status':'ok'}
     def get(self):
+        #if (db.session.query(MapItem.id).count() == 0):
+        return self.runOnce() 
         items = MapItem.query.all()
         return {'data':[i.__to_dict__() for i in items]} or dict()
 

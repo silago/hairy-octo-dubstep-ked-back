@@ -24,4 +24,4 @@ STATIC_FILES_SUB = 'static/'
 
 STATIC_FILES_DIR = ROOT_DIR+STATIC_FILES_SUB 
 
-STATIC_FILES_URL = 'http://localhost:9000/static/'
+STATIC_FILES_URL = 'static/'
