@@ -5,6 +5,10 @@ from flask.ext.restful import Resource, Api
 from sqlalchemy.sql import func
 from flask import request, g, session, make_response
 from base.models import *
+from base.blog import *
+from base.catalog import *
+from base.map import *
+from base.pages import *
 import json
 #from urllib3 import PoolManager
 from config import db, STATIC_FILES_DIR, STATIC_FILES_URL, STATIC_FILES_SUB, ROOT_DIR
@@ -447,7 +451,7 @@ class Map(Resource):
             if not t:
                 address = row[3]
                 address = re.sub('тел.*', '', address)
-                address = re.sub('Дом обуви "ТТ",?','', address)
+                #address = re.sub('Дом обуви "ТТ",?','', address)
                 address = re.sub('-', ' ', address)
                 address = address.lstrip()
                 if (city[1:-1] not in address and re.sub('-',' ',city[1:-1]) not in address):
@@ -530,8 +534,9 @@ class Map(Resource):
         data = json.loads(request.data.decode('utf-8'))
         MapItem.query.delete()
         for obj in data["data"]:
-            db.session.add(MapItem(obj["name"],obj["position"],obj['city_id']))
-        db.session.commit()
+            if ("city_id" not in obj or not obj["city_id"]): obj["city_id"] =  None 
+            db.session.add(MapItem(obj["name"],obj["position"],obj['city_id'],obj['address']))
+            db.session.commit()
         return self.get()
 
 
@@ -692,18 +697,20 @@ class Search(Resource):
 
 class Page(Resource):
     def get(self,url):
+        lang = (request.args.get('lang')) or 'ru'
         url = unquote_twice(url)
         result = {}
         #print(url)
 
-        item = PageItem.query.filter(PageItem.url==url).first()
+        item = PageItem.query.filter(PageItem.url==url,).first()
         if item:
-            result = item.__to_dict__()
+            result = item.__to_dict__(lang)
         return result
         #return result
 
     @check_access
     def put(self,url):
+        lang = (request.args.get('lang')) or 'ru'
         url = unquote_twice(url)
         data = request.data.decode('utf-8')
         try:
@@ -718,6 +725,8 @@ class Page(Resource):
 
     @check_access
     def post(self,url):
+        lang = (request.args.get('lang')) or 'ru'
+        print(lang)
         url = unquote_twice(url)
         data = request.data.decode('utf-8')
         try:
@@ -731,14 +740,15 @@ class Page(Resource):
         if ('meta' in data['data']):
             item.meta = json.dumps(data['data']['meta'])
         if ('subitems' in data['data']):
-            new_blocks = self.__create_blocks(data['data']['subitems'])
+            new_blocks =[i for i in item.blocks if i.lang!=lang] 
+            new_blocks+=self.__create_blocks(data['data']['subitems'],None,lang)
             item.blocks = new_blocks
         db.session.add(item)
         db.session.commit()
         return self.get(url)
 
     @login_required
-    def __create_blocks(self,data,parent_id = None):
+    def __create_blocks(self,data,parent_id = None,lang='ru'):
         result = []
         i = 0
         for block in data:
@@ -746,7 +756,7 @@ class Page(Resource):
             if (not block or block['type'] == 'deleted'):
                 continue
             if 'id' not in block:
-                new_block = BlockItem(parent_id,block['type'],json.dumps(block['data']))
+                new_block = BlockItem(parent_id,block['type'],json.dumps(block['data']),lang)
             else:
                 new_block = BlockItem.query.get(block['id'])
                 new_block.data=json.dumps(block['data'])
@@ -755,7 +765,7 @@ class Page(Resource):
             db.session.commit()
             result.append(new_block)
             if 'subitems' in block:
-                new_block.subitems = self.__create_blocks(block['subitems'],new_block.id)
+                new_block.subitems = self.__create_blocks(block['subitems'],new_block.id,lang)
             db.session.add(new_block)
             db.session.commit()
         return result

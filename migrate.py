@@ -3,6 +3,10 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 from base.models import *
+from base.blog import *
+from base.catalog import *
+from base.map import *
+from base.pages import *
 
 migrate = Migrate(app, db)
 

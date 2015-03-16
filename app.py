@@ -1,9 +1,9 @@
 from config import db, app
 from flask.ext.restful import Resource, Api
-from base.models import BlockItem, UserItem
 from flask import request
 from base import views
 from flask.ext.login import LoginManager
+from base.models import UserItem
 
 
 login_manager = LoginManager()
