@@ -450,7 +450,7 @@ class Map(Resource):
             name = row[0].lstrip()
             city    = row[1].lstrip()
             if not t:
-                address = row[3]
+                address = row[2]
                 address = re.sub('тел.*', '', address)
                 #address = re.sub('Дом обуви "ТТ",?','', address)
                 address = re.sub('-', ' ', address)
@@ -462,8 +462,8 @@ class Map(Resource):
             #address="Невинномысск, ул. Гагарина, д. 1 в, ТЦ," 
             url = "http://geocode-maps.yandex.ru/1.x/?&geocode="+address
             print(url)
-            print(name)
-            print(address)
+            #print(name)
+            #print(address)
             try:
                 response = requests.get(url)
             except:
@@ -491,10 +491,9 @@ class Map(Resource):
 
         
         shops = []
-        with open(ROOT_DIR+'../../../sources/shops.csv') as csvfile:
+        with open(ROOT_DIR+'../../../sources/shops_.csv') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             for row in reader:
-
                 name = row[0].lstrip()
                 #address = row[3]
                 #address = re.sub('тел.*', '', address)
@@ -526,9 +525,14 @@ class Map(Resource):
         #db.session.commit()
         return {'status':'ok'}
     def get(self):
-        return([])
         #if (db.session.query(MapItem.id).count() == 0):
         #return self.runOnce() 
+        #b = BlockItem.query.get(231)
+        #b.data = json.loads(b.data)
+        #db.session.add(b)
+        #db.session.commit()
+
+        return([])
         items = MapItem.query.all()
         result = []
         countries = CityItem.query.group_by(CityItem.country).all()
@@ -539,8 +543,8 @@ class Map(Resource):
             for c in i['cities']:
                 c['shops'] = []
                 c['shops']+=[{'name':s.name,'description':s.address,'coords':s.position} for s in MapItem.query.filter(CityItem.id==c['id']).all()]
-        bi  = BlockItem.query.get(231)
-        result = json.dumps({'countries':result,'map_type':'firm'})
+        bi  = BlockItem.query.get(242)
+        result = json.dumps({'countries':result,'map_type':'partner'})
         
         bi.data = json.dumps(result)
         db.session.add(bi)
