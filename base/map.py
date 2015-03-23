@@ -20,8 +20,9 @@ class CityItem(db.Model):
     country = db.Column(db.String())
     name = db.Column(db.String())
     position   = db.Column(db.String())
-    def __init__(self,name,position):
+    def __init__(self,name,position,country):
         self.name = name
+        self.country = country
         self.position = json.dumps(position)
     def __to_dict__(self):
         return dict({'id':self.id,'country':self.country,'name':self.name,'position':json.loads(self.position)})

@@ -440,7 +440,8 @@ class Map(Resource):
         #pos  = etree.fromstring(response.content.decode('utf-8'))[0][1][0][2].text
         tree = etree.fromstring(response.content)
         pos  = tree.find('.//{*}pos').text.split(' ')[::-1]
-        city = CityItem.query.filter(CityItem.name==city_name).first() or CityItem(city_name,pos)
+        country = tree.find('.//{*}CountryName').text
+        city = CityItem.query.filter(CityItem.name==city_name).first() or CityItem(city_name,pos,country)
         db.session.add(city)
         #db.session.commit()
         return city
@@ -525,9 +526,26 @@ class Map(Resource):
         #db.session.commit()
         return {'status':'ok'}
     def get(self):
+        return([])
         #if (db.session.query(MapItem.id).count() == 0):
         #return self.runOnce() 
         items = MapItem.query.all()
+        result = []
+        countries = CityItem.query.group_by(CityItem.country).all()
+        for i in countries:
+            result+=[{'name':i.country,'cities':[]}]
+        for i in result:
+            i['cities']+= [{'name':z.name,'id':z.id} for z in CityItem.query.filter(CityItem.country==i['name']).all()]
+            for c in i['cities']:
+                c['shops'] = []
+                c['shops']+=[{'name':s.name,'description':s.address,'coords':s.position} for s in MapItem.query.filter(CityItem.id==c['id']).all()]
+        bi  = BlockItem.query.get(231)
+        result = json.dumps({'countries':result,'map_type':'firm'})
+        
+        bi.data = json.dumps(result)
+        db.session.add(bi)
+        db.session.commit()
+        return {'countries':len(result)}
         return {'data':[i.__to_dict__() for i in items]} or dict()
 
     def post(self):
