@@ -543,13 +543,16 @@ class Map(Resource):
             for c in i['cities']:
                 c['shops'] = []
                 c['shops']+=[{'name':s.name,'description':s.address,'coords':s.position} for s in MapItem.query.filter(CityItem.id==c['id']).all()]
-        bi  = BlockItem.query.get(242)
-        result = json.dumps({'countries':result,'map_type':'partner'})
+        bi  = BlockItem.query.get(231)
+        result = {'countries':result,'map_type':'partner'}
+        #return({'r':(result)})
+         
         
         bi.data = json.dumps(result)
+        
         db.session.add(bi)
         db.session.commit()
-        return {'countries':len(result)}
+        return {'data':bi.data}
         return {'data':[i.__to_dict__() for i in items]} or dict()
 
     def post(self):
