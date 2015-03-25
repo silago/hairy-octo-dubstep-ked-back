@@ -441,17 +441,20 @@ class Map(Resource):
         tree = etree.fromstring(response.content)
         pos  = tree.find('.//{*}pos').text.split(' ')[::-1]
         country = tree.find('.//{*}CountryName').text
-        city = CityItem.query.filter(CityItem.name==city_name).first() or CityItem(city_name,pos,country)
-        db.session.add(city)
+        #city = CityItem.query.filter(CityItem.name==city_name).first() or CityItem(city_name,pos,country)
+        #db.session.add(city)
         #db.session.commit()
-        return city
+        
+        return {'name':city_name,'pos':pos,'country':country}
        
     def getFromUrl(self,row,t=False):
             name = row[0].lstrip()
             city    = row[1].lstrip()
             if not t:
                 address = row[2]
-                address = re.sub('тел.*', '', address)
+                address = re.sub(' тел\..*', '', address)
+                address = re.sub('([ТтЦц]{2}|Универмаг)\ \w+?,','',address)
+                address = re.sub('м\.\w+?,','',address)
                 #address = re.sub('Дом обуви "ТТ",?','', address)
                 address = re.sub('-', ' ', address)
                 address = address.lstrip()
@@ -468,7 +471,7 @@ class Map(Resource):
                 response = requests.get(url)
             except:
                 sleep(10)
-                response = requests.get(address)
+                response = requests.get(url)
 
             #country =  ElementTree.fromstring(response.content.decode('utf-8'))[0][1][0][0][0][3]
             try: 
@@ -476,7 +479,7 @@ class Map(Resource):
                 country = tree.find('.//{*}CountryName').text
                 pos  = tree.find('.//{*}pos').text.split(' ')[::-1]
             except:
-                return self.getFromUrl(row,row[2])
+                return self.getFromUrl(row,row[3])
             return country, pos
             #cc = country+', '+city
             #city_el = self.addCity(country,city)
@@ -491,7 +494,9 @@ class Map(Resource):
 
         
         shops = []
-        with open(ROOT_DIR+'../../../sources/shops_.csv') as csvfile:
+        city_arr = []
+        res = {'countries':{}}
+        with open(ROOT_DIR+'../../../sources/shops.csv') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             for row in reader:
                 name = row[0].lstrip()
@@ -507,10 +512,25 @@ class Map(Resource):
                 country,pos = self.getFromUrl(row)
 
                 cc = country+', '+city
-                city_el = self.addCity(country,city)
-                item = MapItem(name,pos,city_el.id,row[3])
-                db.session.add(item)
+                #city_el = self.addCity(country,city)
+                #city_arr = [self.addCity(country,city),]
+                if country not in res['countries']: res['countries'][country] = {'name':country,'cities':{}}
+                if city not in res['countries'][country]['cities']: res['countries'][country]['cities'][city] = {'name':city,'shops':[]}
+                if country=='Болгария':
+                    print("############")
+                    sleep(20)
+                res['countries'][country]['cities'][city]['shops']+=[{'name':name,'coords':pos,'description':row[3],'type':row[4]},]
+                print(country+'->'+city+'->'+row[3])
+        b = BlockItem.query.get(231)
+        b.data = json.dumps(res)
+        db.session.add(b)
         db.session.commit()
+        return(res)
+                
+
+                #item = MapItem(name,pos,city_el.id,row[3])
+                #db.session.add(item)
+        #db.session.commit()
 
         #for j in data:
         #    if j['parent_id']==root_id:
@@ -526,7 +546,7 @@ class Map(Resource):
         return {'status':'ok'}
     def get(self):
         #if (db.session.query(MapItem.id).count() == 0):
-        #return self.runOnce() 
+        return self.runOnce() 
         #b = BlockItem.query.get(231)
         #b.data = json.loads(b.data)
         #db.session.add(b)
@@ -543,13 +563,16 @@ class Map(Resource):
             for c in i['cities']:
                 c['shops'] = []
                 c['shops']+=[{'name':s.name,'description':s.address,'coords':s.position} for s in MapItem.query.filter(CityItem.id==c['id']).all()]
-        bi  = BlockItem.query.get(242)
-        result = json.dumps({'countries':result,'map_type':'partner'})
+        bi  = BlockItem.query.get(231)
+        result = {'countries':result,'map_type':'partner'}
+        #return({'r':(result)})
+         
         
         bi.data = json.dumps(result)
+        
         db.session.add(bi)
         db.session.commit()
-        return {'countries':len(result)}
+        return {'data':bi.data}
         return {'data':[i.__to_dict__() for i in items]} or dict()
 
     def post(self):
