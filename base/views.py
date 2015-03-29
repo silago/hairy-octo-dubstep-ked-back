@@ -864,7 +864,7 @@ class Blog(Resource):
     def get(self):
         coll = (request.args.get('categories')) or False
         if (coll):
-            return {'data':[{'name':i.name,'id':i.id,'visible':i.visible} for i in BlogCategory.query.all()]}
+            return {'data':[{'name':i.name,'url':i.url,'id':i.id,'visible':i.visible} for i in BlogCategory.query.all()]}
         else:
             return {'data':[i.__to_dict__() for i in BlogPageItem.query.limit(10).all()]}
     def post(self):
@@ -878,9 +878,10 @@ class Blog(Resource):
         for d in BlogCategory.query.filter(~BlogCategory.id.in_((cat_ids))).all():
             d.query.delete()
         for i in data["data"]:
-            cat = (BlogCategory.query.get(i["id"]) if "id" in i else BlogCategory(i["name"])) or BlogCategory(i["name"])
+            cat = (BlogCategory.query.get(i["id"]) if "id" in i else BlogCategory(i["name"],i["url"])) or BlogCategory(i["name"],i["url"])
             cat.name=(i["name"])
-            cat.visible=(i["visible"])
+            cat.url=(i["url"])
+            cat.visible=i["visible"] if 'visible' in i else 1
             db.session.add(cat)
         db.session.commit()
         return self.get()
@@ -891,10 +892,12 @@ class BlogPageBlock(Resource):
 
 # page name - it is category name
 class BlogPages(Resource):
-    def get(self,page_name):
-       return {'name':page_name,'subitems':[ i.__to_dict__() for i in BlogCategory.query.filter(BlogCategory.name==page_name).first().pages]}
-    def post(self,page_name):
-        category = BlogCategory.query.filter(BlogCategory.name==page_name).first()
+    def get(self,url):
+       return {'url':url,'subitems':[ i.__to_dict__(True) for i in BlogCategory.query.filter(BlogCategory.url==url).first().pages]}
+       #return {'name':page_name,'subitems':[ i.__to_dict__() for i in BlogCategory.query.filter(BlogCategory.name==page_name).first().pages]}
+    
+    def post(self,url):
+        category = BlogCategory.query.filter(BlogCategory.url==url).first()
         data = request.data.decode('utf-8')
         try:
             data = json.loads(data)
@@ -903,13 +906,18 @@ class BlogPages(Resource):
         data = data["data"]
         category_pages = []
         for page in data["subitems"]:
-            page_item = BlogPageItem.query.get(page["id"]) if "id" in page else BlogPageItem("","")
+            page_item = BlogPageItem.query.get(page["id"]) if "id" in page else BlogPageItem("","","")
             page_item.category_id = page["category_id"]
-            page_item.blocks = self.__create_blocks(page['subitems'])
+            if 'url' in page: page_item.url = page['url']
+            if 'subitems' in page: page_item.blocks  = self.__create_blocks(page['subitems'])
+            pr = json.dumps(page['preview']) if page['preview'] else '{}'
+            page_item.preview = pr
             db.session.add(page_item)
             if (page_item.category_id==category.id):
                 category_pages.append(page_item)
         category.pages = category_pages
+
+
         
         #item = PageItem.query.filter(PageItem.url==url).first()
         #if not item:
@@ -920,7 +928,7 @@ class BlogPages(Resource):
         #item.blocks = new_blocks
         db.session.add(category)
         db.session.commit()
-        return self.get(page_name)
+        return self.get(url)
 
     @login_required
     def __create_blocks(self,data,parent_id = None):
