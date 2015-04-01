@@ -887,11 +887,20 @@ class Blog(Resource):
         return self.get()
 
 class BlogPageBlock(Resource):
-    def get(self,page_name,alias,id):
-       return BlogBlockItem.query.filter(BlogBlockItem.id==id).first().__to_dict__()
+    def get(self,page_name,alias):
+       return BlogPageItem.query.filter(BlogPageItem.url==alias).first().__to_dict__()
 
 # page name - it is category name
 class BlogPages(Resource):
+    def _walkThrowBlocks(self,arr):
+        for i in arr:
+            if i['type']=='deleted':
+                arr.remove(i)
+            elif 'subitems' in i:
+                i['subitems'] = self._walkThrowBlocks(i['subitems'])
+        return arr
+
+
     def get(self,url):
        return {'url':url,'subitems':[ i.__to_dict__(True) for i in BlogCategory.query.filter(BlogCategory.url==url).first().pages]}
        #return {'name':page_name,'subitems':[ i.__to_dict__() for i in BlogCategory.query.filter(BlogCategory.name==page_name).first().pages]}
@@ -910,7 +919,7 @@ class BlogPages(Resource):
             page_item.category_id = page["category_id"]
             if 'url' in page: page_item.url = page['url']
             if 'subitems' in page: page_item.blocks  = self.__create_blocks(page['subitems'])
-            pr = json.dumps(page['preview']) if page['preview'] else '{}'
+            pr = json.dumps( self._walkThrowBlocks(page['preview'])) if page['preview'] else '{}'
             page_item.preview = pr
             db.session.add(page_item)
             if (page_item.category_id==category.id):
@@ -927,6 +936,7 @@ class BlogPages(Resource):
         #new_blocks = self.__create_blocks(data['data']['subitems'])
         #item.blocks = new_blocks
         db.session.add(category)
+        BlogBlockItem.query.filter(BlogBlockItem.type=='deleted').delete()
         db.session.commit()
         return self.get(url)
 
