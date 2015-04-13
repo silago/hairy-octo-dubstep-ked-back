@@ -2,7 +2,7 @@ from config import db, app
 from flask.ext.restful import Resource, Api
 from flask import request
 #from base import views
-from views import subscribe, pages, blog, auth, catalog, files, search
+from views import subscribe, pages, blog, auth, catalog, files, search, buy
 
 from flask.ext.login import LoginManager
 from base.models import UserItem
@@ -39,18 +39,25 @@ api.add_resource(search.Search,'/api/search')
 
 # vesna / man / item
 #api.add_resource(views.Catalog,'/api/catalog/')
-api.add_resource(catalog.Rating,'/api/rate/<string:id>/<string:rating>')
 
 # show all collections
-api.add_resource(catalog.CatalogCollections,'/api/catalog')
 #api.add_resource(CatalogCollections,'/api/catalog')
 
 # show segments from actvie collection if no specific collections is provided
+api.add_resource(catalog.Rating,'/api/rate/<string:id>/<string:rating>')
+api.add_resource(catalog.CatalogCollections,'/api/catalog')
 api.add_resource(catalog.CatalogSegments,'/api/catalog/collection')
 api.add_resource(catalog.CatalogTypes,'/api/catalog/collection/<string:slug>/')
 api.add_resource(catalog.CatalogItems,'/api/catalog/collection/<string:segment_slug>/<string:type_slug>/')
 api.add_resource(catalog.CatalogItemData,'/api/catalog/collection/<string:segment_slug>/<string:type_slug>/<string:sku>/')
 
+
+#api.add_resource(catalog.Rating,'/api/rate/<string:id>/<string:rating>')
+api.add_resource(buy.SideCatalogCollections,'/api/sidecatalog')
+api.add_resource(buy.SideCatalogSegments,   '/api/sidecatalog/collection')
+api.add_resource(buy.SideCatalogTypes,      '/api/sidecatalog/collection/<string:slug>/')
+api.add_resource(buy.SideCatalogItems,      '/api/sidecatalog/collection/<string:segment_slug>/<string:type_slug>/')
+api.add_resource(buy.SideCatalogItemData,   '/api/sidecatalog/collection/<string:segment_slug>/<string:type_slug>/<string:sku>/')
 
 @login_manager.user_loader
 def load_user(userid):

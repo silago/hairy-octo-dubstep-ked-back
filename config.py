@@ -21,7 +21,6 @@ db = SQLAlchemy(app)
 ROOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../frontend/app/')
 #ROOT_DIR  = '/home/silago/work/keddo/application/frontend/app/'
 STATIC_FILES_SUB = 'static/'
-
 STATIC_FILES_DIR = ROOT_DIR+STATIC_FILES_SUB 
-
 STATIC_FILES_URL = 'static/'
+SIDE_CATALOG_URL = 'http://yyees.com/upload/marketing.csv'
