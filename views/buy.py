@@ -137,7 +137,8 @@ class SideCatalogCollections(Resource):
         return self.get()
 
     def processCsv(self,file):
-        artikul_index = 6
+        artikul_index = 0
+        artikul_index_2 = 6
         segment_index = 19
         type_index = 20
         file.encoding = 'PT154'
@@ -184,9 +185,28 @@ class SideCatalogCollections(Resource):
                     db.session.commit()
 
                 try:
-                    artikul_name = row[artikul_index] 
-                    artikul      = SideCatalogItem(item_type.id,artikul_name,1,json.dumps({columns[i]:row[i] for i in range(0,len(row)) }))
-                    db.session.add(artikul)
+                    print('3')
+                    artikul = None
+                    artikul_name = row[artikul_index] if row[artikul_index] else row[artikul_index_2]
+                    if '#' in artikul_name:
+                        parts = artikul_name.split('#')
+                        artikul_name = parts[0]
+                        parts_index = parts[1]
+                        artikul = SideCatalogItem.query.filter(SideCatalogItem.parent_id==item_type.id,SideCatalogItem.sku==artikul_name).first()
+                    else:
+                        parts_index = 0
+                        
+                    if artikul is not None:
+                        artikul_data = json.loads(artikul.data)
+                        artikul_data[parts_index] = {columns[i]:row[i] for i in range(0,len(row)) }
+                        artikul_data = json.dumps(artikul_data)
+                        artikul.data = artikul_data
+                        db.session.add(artikul)
+                    else:
+                        artikul      = SideCatalogItem(item_type.id,artikul_name,1,json.dumps({parts_index:{columns[i]:row[i] for i in range(0,len(row)) }}))
+                        db.session.add(artikul)
+                        if parts_index!=0:
+                            db.session.commit()
                 except:
                     print("!!some error")
                 #data =  { columns[k]:v   for k,v in enumerate(row)  }

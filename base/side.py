@@ -1,7 +1,7 @@
 from config import db, app
 from datetime import datetime
 from slugify import slugify
-import json
+import json, re
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
 ROLE_USER = 0
@@ -39,7 +39,12 @@ class SideCatalogItemType(db.Model):
     data            = db.Column(db.String())
     items           = db.relationship('SideCatalogItem')
     def __first_item__(self):
-        return SideCatalogItem.query.filter(SideCatalogItem.parent_id==self.id).first().__to_dict__()
+        try:
+            return SideCatalogItem.query.filter(SideCatalogItem.parent_id==self.id).first().__to_dict__()
+        except:
+            print(self.id)
+            return {}
+            
 
     def __to_dict__(self):
         return {'id':self.id,'parent_id':self.parent_id,'slug':self.slug,'name':self.name,'display_name':self.display_name,'data':('{}' if not self.data else json.loads(self.data)),'item_example':self.__first_item__()}
