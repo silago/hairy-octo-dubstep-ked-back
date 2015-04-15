@@ -141,7 +141,9 @@ class SideCatalogCollections(Resource):
         artikul_index_2 = 6
         segment_index = 19
         type_index = 20
-        file.encoding = 'PT154'
+        segment = None
+
+        file.encoding = 'utf8'
         f = file.text.split("\n")
         columns = f[0].split(";")
         #columns = [ i[0] for i in csv.reader(f[0],delimiter=';',quotechar='"') if len(i) == 1]
@@ -165,12 +167,12 @@ class SideCatalogCollections(Resource):
             if (len(row)>=2):
                 #return {}
                 #2 proc
-                #segment      = SideCatalogItemSegment.query.filter(CatalogItemSegment.name==row[segment_index]).first() or CatalogItemSegment(row[segment_index])
-                
-                segment      = SideCatalogItemSegment.query.filter(SideCatalogItemSegment.name=='Обувь').first()
+                if (segment is None or segment.name!=row[segment_index]):
+                    segment      = SideCatalogItemSegment.query.filter(SideCatalogItemSegment.name==row[segment_index]).first()
+                #or CatalogItemSegment(row[segment_index])
+                #segment      = SideCatalogItemSegment.query.filter(SideCatalogItemSegment.name=='Обувь').first()
                 if segment is None:
-                    print('1')
-                    segment =SideCatalogItemSegment('Обувь')
+                    segment =SideCatalogItemSegment(row[segment_index])
                     db.session.add(segment)
                     db.session.commit()
                 #if not segment.id:
