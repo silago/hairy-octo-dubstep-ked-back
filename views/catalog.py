@@ -129,7 +129,10 @@ class CatalogCollections(Resource):
     """ delete collection e.g. all segments in this collection. fail """
     def delete(self):
         collection = (request.args.get('collection')) or False
-        CatalogItem.query.filter(CatalogItem.season==collection).delete()
+        CatalogItemCollections.query.delete()
+        CatalogItemSegment.query.delete()
+        CatalogItemType.query.delete()
+        CatalogItem.query.delete()
         db.session.commit()
         return {}
 
@@ -168,7 +171,9 @@ class CatalogCollections(Resource):
     def processCsv(self,file,collection_name):
         f = file.read().decode('utf-8').split("\n")
         #1. create collection from name
-        columns = [ i[0] for i in csv.reader(f[0],delimiter=',',quotechar='"') if len(i) == 1]
+        #columns = [ i[0] for i in csv.reader(f[0],delimiter=',',quotechar='"') if len(i) == 1]
+        #print(f[0])
+        columns = f[0].split(',')
         del(f[0])
         #collection = False
 
@@ -190,7 +195,7 @@ class CatalogCollections(Resource):
                     db.session.commit()
 
                 try:
-                    artikul      = CatalogItem(item_type.id,row[columns.index('SKU')],row[columns.index('status')],json.dumps({columns[i]:row[i] for i in range(0,len(row)) }))
+                    artikul      = CatalogItem(item_type.id,row[columns.index('SKU')],1,json.dumps({columns[i]:row[i] for i in range(0,len(row)) }))
                     db.session.add(artikul)
                 except:
                     print("!!some error")

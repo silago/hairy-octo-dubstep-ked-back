@@ -13,8 +13,7 @@ import json
 from config import db, STATIC_FILES_DIR, STATIC_FILES_URL, STATIC_FILES_SUB, ROOT_DIR
 from urllib.parse import unquote
 import requests
-#from xml.etree import ElementTree
-from lxml import etree #import ElementTree
+#from lxml import etree
 import base64
 import hashlib
 from flask.ext.login import login_user, logout_user, current_user, login_required
