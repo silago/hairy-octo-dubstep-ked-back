@@ -3,6 +3,16 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.cors import CORS, cross_origin
 import os
 
+
+import re
+_punct_re = re.compile(r'[ !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')
+def slugify(text, delim='-'):
+    result = []
+    for word in _punct_re.split(text.lower()):
+        if word:
+            result.append(word)
+    return delim.join(result)
+
 DEBUG=True
 
 app = Flask(__name__)

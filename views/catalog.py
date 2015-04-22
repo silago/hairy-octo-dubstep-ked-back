@@ -46,11 +46,25 @@ class CatalogItems(Resource):
     def get(self,segment_slug,type_slug):
         active_collection = CatalogItemCollections.query.filter(CatalogItemCollections.active==1).first()
         segment = CatalogItemSegment.query.filter(CatalogItemSegment.collection_id==active_collection.id,CatalogItemSegment.slug==segment_slug).first()
-        stype = CatalogItemType.query.filter(
-                CatalogItemType.parent_id==segment.id,
-                CatalogItemType.slug==type_slug).first()
-        result = [ i.__to_dict__() for i in stype.items ]
-        return {'info':stype.__to_dict__(),'data':result}
+        if (type_slug!='*'):
+            stype = CatalogItemType.query.filter(
+                    CatalogItemType.parent_id==segment.id,
+                    CatalogItemType.slug==type_slug).first()
+            result = [ i.__to_dict__() for i in stype.items ]
+            return {'info':stype.__to_dict__(),'data':result}
+        else:
+            stypes = CatalogItemType.query.filter(CatalogItemType.parent_id==segment.id).all()
+            r = []
+            for st in stypes:
+                r.append([i.__to_dict__() for i in st.items])
+            return {
+                'info':{
+                    'display_name':segment.name,
+                    'item_example':{
+                        'data':r[0]}
+                    },
+                    'data':r
+                }
 
 class CatalogTypes(Resource):
     def get(self,slug):
@@ -169,7 +183,7 @@ class CatalogCollections(Resource):
         return self.get()
 
     def processCsv(self,file,collection_name):
-        f = file.read().decode('utf-8').split("\n")
+        f = file.read().decode('utf8').split("\n")
         #1. create collection from name
         #columns = [ i[0] for i in csv.reader(f[0],delimiter=',',quotechar='"') if len(i) == 1]
         #print(f[0])
@@ -189,16 +203,17 @@ class CatalogCollections(Resource):
                     db.session.add(segment)
                     db.session.commit()
                 
-                item_type    = CatalogItemType.query.filter(CatalogItemType.parent_id==segment.id,CatalogItemType.name==row[columns.index('Тип')]).first() or CatalogItemType(segment.id,row[columns.index('Тип')]) 
+                item_type    = CatalogItemType.query.filter(CatalogItemType.parent_id==segment.id,CatalogItemType.name==row[columns.index('Тип обуви')]).first() or CatalogItemType(segment.id,row[columns.index('Тип обуви')]) 
                 if not item_type.id:
                     db.session.add(item_type)
                     db.session.commit()
 
-                try:
-                    artikul      = CatalogItem(item_type.id,row[columns.index('SKU')],1,json.dumps({columns[i]:row[i] for i in range(0,len(row)) }))
+                #try:
+                    artikul      = CatalogItem(item_type.id,row[columns.index('Артикул')],1,json.dumps({columns[i]:row[i] for i in range(0,len(row)) }))
                     db.session.add(artikul)
-                except:
-                    print("!!some error")
+                #except Exception as e:
+                #    print(e)
+                #    print("!!some error")
                 #data =  { columns[k]:v   for k,v in enumerate(row)  }
         db.session.commit()
         return self.get()

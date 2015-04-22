@@ -1,6 +1,7 @@
 from config import db, app
 from datetime import datetime
-from slugify import slugify
+#from slugify import slugify
+from config import slugify
 import json
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
