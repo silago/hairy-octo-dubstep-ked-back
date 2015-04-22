@@ -107,10 +107,10 @@ class SideCatalogCollections(Resource):
             l = 0
         else:
             l = last_update.value
+        #    l = 0
         
         #3600 = one hour
         #
-        print(l)
         if (time()-float(l)>12*3600):
         #if True:
             response = requests.get(SIDE_CATALOG_URL)

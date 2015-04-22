@@ -195,6 +195,7 @@ class CatalogCollections(Resource):
         db.session.add(collection)
         db.session.commit()
         for row in csv.reader(f,delimiter=',',quotechar='"'):
+            artikul = None
             if (len(row)>=2):
                 #return {}
                 #2 proc
@@ -209,7 +210,8 @@ class CatalogCollections(Resource):
                     db.session.commit()
 
                 #try:
-                    artikul      = CatalogItem(item_type.id,row[columns.index('Артикул')],1,json.dumps({columns[i]:row[i] for i in range(0,len(row)) }))
+                artikul      = CatalogItem(item_type.id,row[columns.index('Артикул')],1,json.dumps({columns[i]:row[i] for i in range(0,len(row)) }))
+                if (artikul.sku):
                     db.session.add(artikul)
                 #except Exception as e:
                 #    print(e)
