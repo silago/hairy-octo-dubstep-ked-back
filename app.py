@@ -21,6 +21,7 @@ api  = Api(app)
 
 api.add_resource(subscribe.Subscribe,'/api/subscribe')
 api.add_resource(pages.Block,'/api/block/<string:alias>')
+api.add_resource(pages.Pages,'/api/page')
 api.add_resource(pages.Page,'/api/page/<string:url>')
 api.add_resource(blog.Blog,'/api/blog')
 api.add_resource(blog.BlogPages,'/api/blog/<string:url>')

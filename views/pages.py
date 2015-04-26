@@ -25,6 +25,10 @@ from sqlalchemy.sql.expression import or_
 from views.auth import check_access
 from views.common import unquote_twice
 
+class Pages(Resource):
+    def get(self):
+        result = PageItem.query.all()
+        return {'data':[{'id':i.id,'url':i.url,'meta':json.loads(i.meta)}  for i in result]}
 
 class Page(Resource):
     def get(self,url):
