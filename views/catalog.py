@@ -56,12 +56,12 @@ class CatalogItems(Resource):
             stypes = CatalogItemType.query.filter(CatalogItemType.parent_id==segment.id).all()
             r = []
             for st in stypes:
-                r.append([i.__to_dict__() for i in st.items])
+                r+=[i.__to_dict__() for i in st.items]
             return {
                 'info':{
                     'display_name':segment.name,
                     'item_example':{
-                        'data':r[0]}
+                        'data':r}
                     },
                     'data':r
                 }
