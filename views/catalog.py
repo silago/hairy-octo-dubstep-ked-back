@@ -91,7 +91,13 @@ class CatalogSegments(Resource):
         sdata = data['data']['data']
         grouped_segment = False
         for  segment in sdata:
-            item = CatalogItemSegment.query.get(segment['id'])
+            if 'id' in'id' in  segment:
+                item = CatalogItemSegment.query.get(segment['id'])
+            else:
+                item = CatalogItemSegment(segment['collection_id'],segment['name'])
+                db.session.add(item)
+                db.session.commit()
+
             if ('group' in segment and segment['group']==1):
                 if not grouped_segment:
                     grouped_segment = CatalogItemSegment(segment['collection_id'],segment['name'])
@@ -100,6 +106,7 @@ class CatalogSegments(Resource):
                 grouped_segment.types+=item.types
                 db.session.delete(item)
             else:
+                if ('parent_id' in segment): item.parent_id = segment['parent_id']
                 item.name = segment['name']
                 db.session.add(item)
         if grouped_segment:

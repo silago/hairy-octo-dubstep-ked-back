@@ -150,8 +150,9 @@ class CatalogItemSegment(db.Model):
     data            = db.Column(db.String())
     #types           = db.relationship('CatalogItemType')
     types = db.relationship('CatalogItemType',primaryjoin=id==CatalogItemType.parent_id)
+    children = db.relationship('CatalogItemSegment')
     def __to_dict__(self):
-        return {'id':self.id,'collection_id':self.collection_id,'parent_id':self.parent_id,'slug':self.slug,'name':self.name}
+        return {'id':self.id,'collection_id':self.collection_id,'parent_id':self.parent_id,'slug':self.slug,'name':self.name,'children':[i.__to_dict__() for i in self.children]}
 
     def __init__(self,collection_id,name):
         self.collection_id = collection_id
