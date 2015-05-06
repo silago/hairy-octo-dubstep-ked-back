@@ -89,7 +89,7 @@ class CatalogSegments(Resource):
         sdata = data['data']['data']
         grouped_segment = False
         for  segment in sdata:
-            if 'id' in'id' in  segment:
+            if 'id'  in  segment:
                 item = CatalogItemSegment.query.get(segment['id'])
             else:
                 item = CatalogItemSegment(segment['collection_id'],segment['name'])
@@ -106,6 +106,7 @@ class CatalogSegments(Resource):
             else:
                 if ('parent_id' in segment): item.parent_id = segment['parent_id']
                 item.name = segment['name']
+                if 'data' in segment:  item.data = segment['data']
                 db.session.add(item)
         if grouped_segment:
             for t in grouped_segment.types:
