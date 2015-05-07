@@ -47,7 +47,7 @@ class SideCatalogItemType(db.Model):
             
 
     def __to_dict__(self):
-        return {'id':self.id,'parent_id':self.parent_id,'slug':self.slug,'name':self.name,'display_name':self.display_name,'data':('{}' if not self.data else json.loads(self.data)),'item_example':self.__first_item__()}
+        return {'id':self.id,'parent_id':self.parent_id,'slug':self.slug,'name':self.name,'display_name':self.display_name,'data':('{}' if not self.data else json.loads(self.data))}
 
     def __init__(self,parent_id,name):
         self.parent_id = parent_id
