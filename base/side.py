@@ -64,7 +64,7 @@ class SideCatalogItemSegment(db.Model):
     #types           = db.relationship('CatalogItemType')
     types = db.relationship('SideCatalogItemType',primaryjoin=id==SideCatalogItemType.parent_id)
     def __to_dict__(self):
-        return {'id':self.id,'parent_id':self.parent_id,'slug':self.slug,'name':self.name}
+        return {'id':self.id,'parent_id':self.parent_id,'slug':self.slug,'name':self.name,'random_item':SideCatalogItem.query.filter(SideCatalogItem.parent_id==SideCatalogItemType.query.filter(SideCatalogItemType.parent_id==self.id).first().id).first().__to_dict__()['data']}
 
     def __init__(self,name):
         self.name = name
