@@ -32,6 +32,28 @@ class Pages(Resource):
 
 class Page(Resource):
     def get(self,url):
+        #if (url=='make_shops'):
+        #    item = BlockItem.query.get(231)
+        #    data = json.loads(item.data)
+        #    #strip()
+        #    for country in data['countries']:
+        #        for city in data['countries'][country]['cities']:
+        #            for double_city in data['countries'][country]['cities']:
+        #                if (data['countries'][country]['cities'][double_city]!=None and data['countries'][country]['cities'][city]!=None and data['countries'][country]['cities'][city]['name'].strip() == data['countries'][country]['cities'][double_city]['name'].strip()):
+        #                    if (data['countries'][country]['cities'][city]['name']!=data['countries'][country]['cities'][double_city]['name']):
+        #                        print(data['countries'][country]['cities'][city]['name']+'=='+data['countries'][country]['cities'][double_city]['name'].strip())
+        #                        data['countries'][country]['cities'][city]['shops']+=data['countries'][country]['cities'][double_city]['shops']
+        #                        data['countries'][country]['cities'][double_city] = None
+        #    item.data = json.dumps(data)
+        #    db.session.add(item)
+        #    db.session.commit()
+        #                    #print('need change')
+        #                    
+
+        #        #print(data['countries'][c]['cities'])
+        #    return [1]
+
+
         lang = (request.args.get('lang')) or 'ru'
         url = unquote_twice(url)
         result = {}
