@@ -41,16 +41,21 @@ class BlogPageBlock(Resource):
 # page name - it is category name
 class BlogPages(Resource):
     def _walkThrowBlocks(self,arr):
+        order = 0
         for i in arr:
             if i['type']=='deleted':
                 arr.remove(i)
             elif 'subitems' in i:
+                order = order+1
+                i['order']=order
                 i['subitems'] = self._walkThrowBlocks(i['subitems'])
         return arr
 
 
     def get(self,url):
-       return {'url':url,'subitems':[ i.__to_dict__(True) for i in BlogCategory.query.filter(BlogCategory.url==url).first().pages]}
+       c = BlogCategory.query.filter(BlogCategory.url==url).first()
+       pages = c.pages if c else []
+       return {'url':url,'subitems':[ i.__to_dict__(True) for i in pages ]}
        #return {'name':page_name,'subitems':[ i.__to_dict__() for i in BlogCategory.query.filter(BlogCategory.name==page_name).first().pages]}
     
     def post(self,url):
