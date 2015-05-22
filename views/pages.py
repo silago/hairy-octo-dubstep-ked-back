@@ -33,25 +33,26 @@ class Pages(Resource):
 class Page(Resource):
     def get(self,url):
         #if (url=='make_shops'):
-        #    item = BlockItem.query.get(231)
+        #    item = BlockItem.query.get(338)
         #    data = json.loads(item.data)
         #    #strip()
         #    for country in data['countries']:
         #        for city in data['countries'][country]['cities']:
-        #            for double_city in data['countries'][country]['cities']:
-        #                if (data['countries'][country]['cities'][double_city]!=None and data['countries'][country]['cities'][city]!=None and data['countries'][country]['cities'][city]['name'].strip() == data['countries'][country]['cities'][double_city]['name'].strip()):
-        #                    if (data['countries'][country]['cities'][city]['name']!=data['countries'][country]['cities'][double_city]['name']):
-        #                        print(data['countries'][country]['cities'][city]['name']+'=='+data['countries'][country]['cities'][double_city]['name'].strip())
-        #                        data['countries'][country]['cities'][city]['shops']+=data['countries'][country]['cities'][double_city]['shops']
-        #                        data['countries'][country]['cities'][double_city] = None
+        #            if data['countries'][country]['cities'][city] and data['countries'][country]['cities'][city]['shops']:
+        #                for  (k,v) in enumerate(data['countries'][country]['cities'][city]['shops']):
+        #                    if (v['type']!='firm'):
+        #                        data['countries'][country]['cities'][city]['shops'][k]=None
+        #                #data['countries'][country]['cities'][city]['shops'] = list(filter(None,data['countries'][country]['cities'][city]['shops']))
+        #                if (not len(list(filter(None,data['countries'][country]['cities'][city]['shops'])))):
+        #                    del data['countries'][country]['cities'][city]
+        #        if (not len([data['countries'][country]['cities'][x] for  x in data['countries'][country]['cities'] if data['countries'][country]['cities'][x]])):
+        #            data['countries'][country] = None           #print(not len(list(filter(None,data['countries'][country]['cities'][city]['shops']))))
+        #    data['countries'] = [data['countries'][x] for x in data['countries']  if data['countries'][x]]
+
         #    item.data = json.dumps(data)
         #    db.session.add(item)
         #    db.session.commit()
-        #                    #print('need change')
-        #                    
-
-        #        #print(data['countries'][c]['cities'])
-        #    return [1]
+        #    return {'d':item.data}
 
 
         lang = (request.args.get('lang')) or 'ru'
