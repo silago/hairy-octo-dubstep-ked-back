@@ -54,7 +54,9 @@ class BlogPages(Resource):
 
     def get(self,url):
        c = BlogCategory.query.filter(BlogCategory.url==url).first()
-       pages = c.pages if c else []
+       offset = int(request.args.get('offset')) or 0 
+       limit  = 1+offset 
+       pages = c.pages[offset:limit] if c else []
        return {'url':url,'subitems':[ i.__to_dict__(True) for i in pages ]}
        #return {'name':page_name,'subitems':[ i.__to_dict__() for i in BlogCategory.query.filter(BlogCategory.name==page_name).first().pages]}
     
